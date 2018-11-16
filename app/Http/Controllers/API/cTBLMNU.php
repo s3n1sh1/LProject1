@@ -144,7 +144,7 @@ class cTBLMNU extends BaseController {
                                         "Table"=>"TBLMNU",
                                         "Field"=>['TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG','TMBCDT','TMFWDT',
                                                   'TMURLW','TMGRUP','TMUSRM','TMREMK'],
-                                        "Where"=>['TMMENUIY','=',$fTBLMNU['TMMENUIY']],
+                                        "Where"=>[['TMMENUIY','=',$fTBLMNU['TMMENUIY']]],
                                     ));
                 break;
             case "3":
@@ -154,7 +154,7 @@ class cTBLMNU extends BaseController {
                                         "Data"=>$fTBLMNU,
                                         "Table"=>"TBLMNU",
                                         "Field"=>['TMMENUIY'],
-                                        "Where"=>['TMMENUIY','=',$fTBLMNU['TMMENUIY']],
+                                        "Where"=>[['TMMENUIY','=',$fTBLMNU['TMMENUIY']]],
                                     ));
 
                 break;

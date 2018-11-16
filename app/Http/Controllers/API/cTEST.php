@@ -50,7 +50,7 @@ class cTEST extends BaseController {
         // http://localhost:8099/myQua/lar/api/cobacoba
 
 // echo A::$B . A::B . A::B(); # Outputs: 123
-echo A::B()->C(); # Outputs: 123
+// echo A::B()->C(); # Outputs: 123
         dd('Stop');   
 
     }

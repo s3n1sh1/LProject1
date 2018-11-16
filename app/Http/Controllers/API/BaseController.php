@@ -361,6 +361,8 @@ class BaseController extends Controller {
         $this->fnUpdObj($Obj, $Code, array( "ReadOnly" => true,
                                             "Controller" => $popQuery === true ? $popTable : "LOADGRID",
                                             "Method" => $popQuery === true ? "LoadData" : $popTable,
+                                            "SubMethod" => $SubMethod,
+                                            "Condition" => $popCondition,
                                             "ShowPopUpModal"=>false,
                                             "Pops"=>array($popCode=>array("Value"=>"",
                                                                           "Show"=>true),
@@ -376,8 +378,6 @@ class BaseController extends Controller {
 /*,
                                                           "f_".$popCode.$popDesc=>array("Value"=>"",
                                                                                         "Disabled"=>false)
-                                            "SubMethod" => $SubMethod,
-                                            "Condition" => $popCondition,
                                             "PopCodeValue" => "",
                                             "PopDescValue" => ""
 */
@@ -781,12 +781,12 @@ class BaseController extends Controller {
                         case "U":
                             $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], '2', $Prefix, $Data['Field'], $Data['UnikNo'] );
                             DB::table($Data['Table'])
-                                ->where([$Data['Where']])                    
+                                ->where($Data['Where'])
                                 ->update($FinalField);
                             break;
                         case "D":
                             DB::table($Data['Table'])
-                                ->where([$Data['Where']])      
+                                ->where($Data['Where'])      
                                 ->delete();
                             break;
                     }
@@ -800,12 +800,12 @@ class BaseController extends Controller {
         } catch (\Exception $e){ 
             // var_dump($e);
             // $message = $this->fnGetErrorMessage($e);
-            // $message = $e->getMessage();
+            $message = $e->getMessage();
             // $message = $e->getCode();
             // $message = $e->getSql();
             // $message = $e->errorInfo[0];
             // $message = $e->errorInfo[1];
-            $message = $e->errorInfo[2];
+            // $message = $e->errorInfo[2];
             // $a = saveSqlError($e);
             // $message = $a->sql;
         

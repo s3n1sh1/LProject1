@@ -28,8 +28,7 @@ class cLOADGRID extends BaseController {
                   ]);
         $TBLSYS = $this->fnQuerySearchAndPaginate($request, $TBLSYS, $Obj, $Sort, $Filter, $ColumnGrid);
 
-        $Hasil = array( "Id"=> $request->IdStore,
-                        "Table"=> $TBLSYS,
+        $Hasil = array( "Data"=> $TBLSYS,
                         "Column"=> $ColumnGrid,
                         "Sort"=> $Sort,
                         "Filter"=> $Filter,

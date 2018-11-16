@@ -108,7 +108,7 @@ class cTBLDSC extends BaseController {
                                         "Data"=>$fTBLDSC,
                                         "Table"=>"TBLDSC",
                                         "Field"=>['TDDSNM','TDLGTH','TDDPFG','TDREMK'],
-                                        "Where"=>['TDDSCD','=',$fTBLDSC['TDDSCD']],
+                                        "Where"=>[['TDDSCD','=',$fTBLDSC['TDDSCD']]],
                                     ));
                 break;
             case "3":
@@ -118,7 +118,7 @@ class cTBLDSC extends BaseController {
                                         "Data"=>$fTBLDSC,
                                         "Table"=>"TBLDSC",
                                         "Field"=>['TDDSCD'],
-                                        "Where"=>['TDDSCD','=',$fTBLDSC['TDDSCD']],
+                                        "Where"=>[['TDDSCD','=',$fTBLDSC['TDDSCD']]],
                                     ));
                 break;
         }

@@ -162,8 +162,8 @@ class cTBLSYS extends BaseController {
                                         "Field"=>['TSDSCD','TSSYCD','TSSYNM','TSDPFG','TSREMK',
                                                   'TSSYT1','TSLST1','TSSYT2','TSLST2','TSSYT3','TSLST3',
                                                   'TSSYV1','TSLSV1','TSSYV2','TSLSV2','TSSYV3','TSLSV3'],
-                                        "Where"=> ['TSDSCD','=',$fTBLSYS['TSDSCD']],
-                                                  ['TSSYCD','=',$fTBLSYS['TSSYCD']]
+                                        "Where"=> [['TSDSCD','=',$fTBLSYS['TSDSCD']],
+                                                   ['TSSYCD','=',$fTBLSYS['TSSYCD']]]
                                     ));
                 break;
             case "3":
@@ -173,8 +173,8 @@ class cTBLSYS extends BaseController {
                                         "Data"=>$fTBLSYS,
                                         "Table"=>"TBLSYS",
                                         "Field"=>['TSDSCD','TSSYCD'],
-                                        "Where"=>['TSDSCD','=',$fTBLSYS['TSDSCD']],
-                                                 ['TSSYCD','=',$fTBLSYS['TSSYCD']]
+                                        "Where"=>[['TSDSCD','=',$fTBLSYS['TSDSCD']],
+                                                  ['TSSYCD','=',$fTBLSYS['TSSYCD']]]
                                     ));
                 break;
         }
