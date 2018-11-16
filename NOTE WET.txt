@@ -1,0 +1,13 @@
+
+php artisan
+
+php artisan migrate:fresh
+php artisan migrate
+php artisan migrate --seed
+php artisan config:cache --env=SQLServer
+php artisan config:cache --env=MySQL
+
+
+
+MySqlGrammer "C:\nginx\html\LaravelWili\vendor\laravel\framework\src\Illuminate\Database\Schema\Grammars"
+SqlServerGrammer "C:\nginx\html\LaravelWili\vendor\laravel\framework\src\Illuminate\Database\Schema\Grammars"
