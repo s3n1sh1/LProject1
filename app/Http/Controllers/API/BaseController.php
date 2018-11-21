@@ -346,7 +346,7 @@ class BaseController extends Controller {
     } 
 
     public function fnCrtObjPop(&$Obj, $Show, $Mode, $Panel, $Code, $popCode, $popDesc, $Name, $Description = "", $Required, 
-                                $popTable, $popQuery=true, $searchChar=3, $popCondition="") {
+                                $popTable, $popQuery=true, $searchChar=3, $popCondition="", $alias=false) {
 
         $SubMethod = "";
         $this->fnCrtObj($Obj, $Show, $Mode, "pop", $Panel, $Code, $Name, $Description, $Required);
@@ -356,6 +356,10 @@ class BaseController extends Controller {
                 $SubMethod = str_replace("TBLSYS_", "", strtoupper($popTable));
                 $popTable = "TBLSYS";
             } 
+        }
+        if ($alias) {
+            $popCode = $Code."_".$popCode;
+            $popDesc = $Code."_".$popDesc;
         }
 
         $this->fnUpdObj($Obj, $Code, array( "ReadOnly" => true,
@@ -371,16 +375,43 @@ class BaseController extends Controller {
                                                           $popCode.$popDesc=>array("Value"=>"",
                                                                                    "Disabled"=>false)),
                                             "Grid"=>"",
+                                            "Alias" => $alias,
                                             "SearchChar" => $searchChar,
                                             "PopCode" => $popCode,
                                             "PopDesc" => $popDesc,
                                             "PopData" => "") );
-/*,
-                                                          "f_".$popCode.$popDesc=>array("Value"=>"",
-                                                                                        "Disabled"=>false)
-                                            "PopCodeValue" => "",
-                                            "PopDescValue" => ""
+    }
+
+    public function fnCrtObjGrd(&$Obj, $Show, $Mode, $Panel, $Code, $Name, $Required, 
+                                $action, $controller, $methodGrid, $methodObject) {
+
+        $this->fnCrtObj($Obj, $Show, $Mode, "grd", $Panel, $Code, $Name, $Name, $Required);
+        $A = strpos(' '.strtoupper($action), strtoupper("A"), 0) > 0 ? true : false; 
+        $E = strpos(' '.strtoupper($action), strtoupper("E"), 0) > 0 ? true : false; 
+        $D = strpos(' '.strtoupper($action), strtoupper("D"), 0) > 0 ? true : false; 
+        $V = strpos(' '.strtoupper($action), strtoupper("V"), 0) > 0 ? true : false; 
+        $this->fnUpdObj($Obj, $Code, array( "Action" => array("A"=> array("has"=>$A,"show"=>$A,"disabled"=>!$A), 
+                                                              "E"=> array("has"=>$E,"show"=>$E,"disabled"=>!$E), 
+                                                              "D"=> array("has"=>$D,"show"=>$D,"disabled"=>!$D), 
+                                                              "V"=> array("has"=>$V,"show"=>$V,"disabled"=>!$V), 
+                                                            ),
+                                            "ActionMode" => "5",
+                                            "Controller" => $controller,
+                                            "Method" => $methodGrid,
+                                            "ShowPopUpModal"=>false,
+
+                                            // "Action" => $action,
+                                            // "MethodGrid" => $methodGrid,
+                                            // "MethodObject" => $methodObject,
+                                            
+                                            "GrdValidation" => false,
+                                            "GrdAuth" => "",
+                                            "GrdKey" => "") );
+
+/*
+
 */
+
     }
 
     public function fnCrtObjDtp(&$Obj, $Show, $Mode, $Panel, $Code, $Name, $Description = "", $Required, $DateType="date",
@@ -542,8 +573,16 @@ class BaseController extends Controller {
             }
 
             if($value->Tipe == "pop") {
-                $cols[] = $value->PopCode;
-                $cols[] = $value->PopDesc;
+                // $cols[] = $value->PopCode;
+                // $cols[] = $value->PopDesc;
+                if($value->Alias) {
+                    // ini karena selectnya ada alias...
+                    $cols[] = str_replace("_",".",$value->PopCode)." As ".$value->PopCode;
+                    $cols[] = str_replace("_",".",$value->PopDesc)." As ".$value->PopDesc;
+                } else {
+                    $cols[] = $value->PopCode;
+                    $cols[] = $value->PopDesc;
+                }      
             }
         }
 
@@ -564,15 +603,18 @@ class BaseController extends Controller {
         return $cols;
     }
 
-    function fnDBRaw($Tipe, $Text) {
+    function fnDBRaw($Tipe, $Text, $Alias = "") {
         $Hasil = "";
+        if ($Alias != "") {
+            $Alias = " As ".$Alias;
+        }
         switch (strtoupper($Tipe)) {
             case "TABLE":
                 $driver = DB::connection()->getConfig("driver");
                 if ($driver=="sqlsrv") {
-                    $noLock = $Text." with (nolock) ";
+                    $noLock = $Text." with (nolock) ".$Alias;
                 } else if ($driver=="mysql") { 
-                    $noLock = $Text."";
+                    $noLock = $Text."".$Alias;
                 } 
 
                 $Hasil = DB::raw($noLock);
@@ -629,13 +671,15 @@ class BaseController extends Controller {
                                             $Prefix."DLFG"=>"0",
                                             $Prefix."CHID"=>"UserA",
                                             $Prefix."CHDT"=>Date("Y-m-d H:i:s"),
-                                            $Prefix."CHNO"=>$AllField[$Prefix."CHNO"]+1,
+                                            // $Prefix."CHNO"=>$AllField[$Prefix."CHNO"]+1,
+                                            $Prefix."CHNO"=>DB::raw($Prefix."CHNO  + 1") ,
                                             $Prefix."CSID"=>"UserA",
                                             $Prefix."CSDT"=>Date("Y-m-d H:i:s")
                                         ));           
                 break;
             case "3":
                 $FinalField = array_merge($FinalField, array(
+                                            $Prefix."DLFG"=>"1",
                                             $Prefix."CHID"=>"UserA",
                                             $Prefix."CHDT"=>Date("Y-m-d H:i:s"),
                                             $Prefix."CHNO"=>"0",
@@ -743,9 +787,20 @@ class BaseController extends Controller {
                 //     ->where('TDDSCD','=',$FinalField['TDDSCD'])                    
                 //     ->update(['TDREMK'=>'wwww']);          
 
+                $IY = [];
                 foreach($SQLSTM as $k => $Data) {
                     
                     $Prefix = substr(array_values($Data['Field'])[0],0,2);
+
+                    if(isset($Data['IyReff'])) { // Begin IY Reference
+                        if (is_array($Data['IyReff'])) {
+                            foreach($Data['IyReff'] as $fReff => $kReff) {
+                                $Data['Data'][$fReff] = $IY[$kReff];
+                            }
+
+                        }
+                    } // End IY Reference
+
                     switch ($Data['Mode']) {
                         case "I":
                             if(isset($Data['Iy'])) { // Begin Insert TBLNOR
@@ -771,6 +826,7 @@ class BaseController extends Controller {
                                             ->insert($FinalTBLNOR);   
                                     }
                                     $Data['Data'][$Data['Iy']] = $NoIY;
+                                    $IY[$Data['Iy']] = $NoIY;
                                 }
                             } // End Insert TBLNOR
 
@@ -789,6 +845,13 @@ class BaseController extends Controller {
                                 ->where($Data['Where'])      
                                 ->delete();
                             break;
+                        case "DD":
+                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], '3', $Prefix, $Data['Field'], $Data['UnikNo'] );
+                            DB::table($Data['Table'])
+                                ->where($Data['Where'])
+                                ->update($FinalField);
+                            break;
+
                     }
 
                 }
