@@ -23,7 +23,6 @@ class cTBLUSR extends BaseController {
 
         $Filter = [];
         $Sort = [];
-        // $Sort[] = array('name'=>'TDDSCD','direction'=>'asc');
         $ColumnGrid = [];
 
         $TBLUSR = TBLUSR::noLock()
@@ -32,8 +31,7 @@ class cTBLUSR extends BaseController {
                   ]);
         $TBLUSR = $this->fnQuerySearchAndPaginate($request, $TBLUSR, $Obj, $Sort, $Filter, $ColumnGrid);
 
-        $Hasil = array( "Id"=> $request->IdStore,
-                        "Table"=> $TBLUSR,
+        $Hasil = array( "Data"=> $TBLUSR,
                         "Column"=> $ColumnGrid,
                         "Sort"=> $Sort,
                         "Filter"=> $Filter,
@@ -50,12 +48,6 @@ class cTBLUSR extends BaseController {
                 ->where([
                     ['TUUSERIY', '=', $request->TUUSERIY],
                   ])->get();
-
-        if($TBLUSR[0]['TUFOTO'] == "") {
-            $TBLUSR[0]['TUFOTO'] = [];    
-        } else {
-            $TBLUSR[0]['TUFOTO'] = [$this->fnGenDataFile($TBLUSR[0]['TUFOTO'])];
-        }
         
         $Hasil = $this->fnFillForm(true, $TBLUSR, "");
         return response()->jSon($Hasil);
@@ -73,7 +65,7 @@ class cTBLUSR extends BaseController {
         $this->fnCrtObjRad($Obj, true, "0", "Panel1", "TUDPFG", "Status", "", "1", "Radio", "DSPLY");        
         $this->fnCrtObjRmk($Obj, true, "0", "Panel1", "TUREMK", "Remark", "", false, 100);
 
-        $this->fnCrtObjFle($Obj, true, "0", "Panel2", "TUFOTO", "Profile Picture", "", false, false, ".jpg, .png");
+        // $this->fnCrtObjFle($Obj, true, "0", "Panel2", "TUFOTO", "Profile Picture", "", false, false, ".jpg, .png");
 
         $this->fnCrtObjDefault($Obj,"TU");
 
@@ -82,45 +74,123 @@ class cTBLUSR extends BaseController {
 
     public function SaveData(Request $request) {
 
-        // BEGIN HEADER
-        $arr = json_encode($request->Form);
-        $arr = json_decode($arr, true);
-        $arr['TUPSWD']['Value'] = $this->fnEncryptPassword($arr['TUPSWD']['Value']);
-        $arr['TUFOTO']['Value'] = $this->fnGenBinaryFile($request->File, 'TUFOTO');
+        $fTBLUSR = json_encode($request->frmTBLUSR);
+        $fTBLUSR = json_decode($fTBLUSR, true);
+
+        $fTBLUAM = json_encode($request->frmTBLUAM);
+        $fTBLUAM = json_decode($fTBLUAM, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-        // $s = $this->fnGetSyntax($arr, 'StpTBLUSR', $request->Mode, $UnikNo);   
-        $s = $this->fnGetSyntax($request->Source, $request->Username, $request->Mode, 'StpTBLUSR', $arr, $UnikNo);      
 
-        $SQLSTM = $s['all'];
-        // END HEADER
-
-        // BEGIN DETAIL
-        // $delimiter = $this->fnGenDelimiter();
-        if($request->Mode != '3') {
-            $arr2 = json_encode($request->Other);
-            $arr2 = json_decode($arr2, true);
-
-            $grid2 = [];
-            foreach($arr2 as $contain) {
-                $grid2 = [];  
-                // $grid2['TANOMRIY'] = array('Value'=>'');
-                $grid2['TAUSERIY'] = array('Value'=>$arr['TUUSERIY']['Value'],'Tipe'=>'txt');
-                $grid2['TAUSER'] = array('Value'=>$arr['TUUSER']['Value'],'Tipe'=>'txt');
-                $grid2['TAMENUIY'] = array('Value'=>$contain['TMMENUIY'],'Tipe'=>'txt');
-                $grid2['TAACES'] = array('Value'=>$contain['HAKAKSES'],'Tipe'=>'txt');
-
-                // $s = $this->fnGetSyntax($grid2, 'StpTBLUAM', $request->Mode, $UnikNo);
-                $s = $this->fnGetSyntax($request->Source, $request->Username, $request->Mode, 'StpTBLUAM', $grid2, $UnikNo);      
-                $SQLSTM .= $Delimiter;
-                $SQLSTM .= $s['all'];
-            }
+        $HasilCheckBFCS = $this->fnCheckBFCS (
+                            array("Table"=>"TBLUSR", 
+                                  "Key"=>"TUUSERIY", 
+                                  "Data"=>$fTBLUSR, 
+                                  "Mode"=>$request->Mode,
+                                  "Menu"=>"", 
+                                  "FieldTransDate"=>""));
+        if (!$HasilCheckBFCS["success"]) {
+            return $HasilCheckBFCS;
         }
-        // END DETAIL
 
-        $HASIL = $this->fnSetExecuteQuery($SQLSTM,$Delimiter);
-        return response()->jSon($HASIL);
+        $SqlStm = [];
+        switch ($request->Mode) {
+            case "1":
+                $fTBLUSR['TUPSWD'] = $this->fnEncryptPassword($fTBLUSR['TUPSWD']);
+
+                array_push($SqlStm, array(
+                                        "UnikNo"=>$UnikNo,
+                                        "Mode"=>"I",
+                                        "Data"=>$fTBLUSR,
+                                        "Table"=>"TBLUSR",
+                                        "Field"=>['TUUSERIY','TUUSER','TUNAME','TUPSWD','TUEMID','TUDPFG','TUREMK'],
+                                        "Where"=>[],
+                                        "Iy"=>"TUUSERIY"
+                                    ));
+
+                foreach($fTBLUAM['TBLUAM'] as $contain) {
+                    $grid2 = [];
+                    $grid2['TAMENUIY'] = $contain['TMMENUIY'];
+                    $grid2['TAACES'] = implode("",$contain['HAKAKSES']);
+
+                    array_push($SqlStm, array(
+                                            "UnikNo"=>$UnikNo,
+                                            "Mode"=>"I",
+                                            "Data"=>$grid2,
+                                            "Table"=>"TBLUAM",
+                                            "Field"=>['TAUSERIY','TAMENUIY','TAACES'],
+                                            "Where"=>[],
+                                            "Iy"=>"TANOMRIY",
+                                            "IyReff"=>array("TAUSERIY"=>"TUUSERIY")
+                                        ));
+                }
+
+                break;
+            case "2":
+                array_push($SqlStm, array(
+                                        "UnikNo"=>$UnikNo,
+                                        "Mode"=>"U",
+                                        "Data"=>$fTBLUSR,
+                                        "Table"=>"TBLUSR",
+                                        "Field"=>['TUEMID','TUDPFG','TUREMK'],
+                                        "Where"=>[['TUUSERIY','=',$fTBLUSR['TUUSERIY']]]
+                                    ));
+
+                foreach($fTBLUAM['TBLUAM'] as $contain) {
+                    $grid2 = [];
+                    $grid2['TAUSERIY'] = $fTBLUSR['TUUSERIY'];
+                    $grid2['TAMENUIY'] = $contain['TMMENUIY'];
+                    $grid2['TAACES'] = implode("",$contain['HAKAKSES']);
+
+                    if (is_null($contain['TANOMRIY'])) {
+                        array_push($SqlStm, array(
+                                                "UnikNo"=>$UnikNo,
+                                                "Mode"=>"I",
+                                                "Data"=>$grid2,
+                                                "Table"=>"TBLUAM",
+                                                "Field"=>['TAUSERIY','TAMENUIY','TAACES'],
+                                                "Where"=>[],
+                                                "Iy"=>"TANOMRIY"
+                                            ));
+                    } else {
+                        array_push($SqlStm, array(
+                                                "UnikNo"=>$UnikNo,
+                                                "Mode"=>"U",
+                                                "Data"=>$grid2,
+                                                "Table"=>"TBLUAM",
+                                                "Field"=>['TAACES'],
+                                                "Where"=>[['TAMENUIY','=',$grid2['TAMENUIY']],
+                                                          ['TAUSERIY','=',$grid2['TAUSERIY']]]
+                        ));
+                    }
+
+                }
+
+                break;
+            case "3":
+                array_push($SqlStm, array(
+                                        "UnikNo"=>$UnikNo,
+                                        "Mode"=>"D",
+                                        "Data"=>[],
+                                        "Table"=>"TBLUAM",
+                                        "Field"=>['TAUSERIY'],
+                                        "Where"=>[['TAUSERIY','=',$fTBLUSR['TUUSERIY']]],
+                                    ));
+                array_push($SqlStm, array(
+                                        "UnikNo"=>$UnikNo,
+                                        "Mode"=>"D",
+                                        "Data"=>[],
+                                        "Table"=>"TBLUSR",
+                                        "Field"=>['TUUSERIY'],
+                                        "Where"=>[['TUUSERIY','=',$fTBLUSR['TUUSERIY']]],
+                                    ));
+
+                break;
+        }
+
+        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
+        return response()->jSon($Hasil);
         
     }
 
@@ -130,23 +200,23 @@ class cTBLUSR extends BaseController {
         if(!$USERIY){
             $QUERY = DB::select( 
             DB::raw("
-                Select TMMENUIY, RTRIM(TMMENU) TMMENU, RTRIM(TMACES) TMACES, '' [HAKAKSES]
-                From TBLMNU With(NoLock)
+                Select TMMENUIY, '' TANOMRIY, RTRIM(TMMENU) TMMENU, RTRIM(TMACES) TMACES, '' HAKAKSES
+                From TBLMNU
                 Order By TMNOMR Asc
             ") );
         } else {
             $QUERY = DB::select( 
             DB::raw("
-                Select TMMENUIY, RTRIM(TMMENU) TMMENU, RTRIM(TMACES) TMACES, IsNull(TAACES,'') [HAKAKSES]
-                From TBLMNU With(NoLock)
-                Left Join TBLUAM With(NoLock) On TAMENUIY = TMMENUIY And TAUSERIY = '".$USERIY."'
+                Select TMMENUIY, TANOMRIY, RTRIM(TMMENU) TMMENU, RTRIM(TMACES) TMACES, IfNull(TAACES,'') HAKAKSES
+                From TBLMNU
+                Left Join TBLUAM On TAMENUIY = TMMENUIY And TAUSERIY = '".$USERIY."'
                 Order By TMNOMR Asc
             ") );
         }
 
         $TBLSYS = DB::select( 
         DB::raw("
-            Select RTRIM(TSSYCD) value, RTRIM(TSSYNM) label From TBLSYS With(NoLock)
+            Select RTRIM(TSSYCD) value, RTRIM(TSSYNM) label From TBLSYS
             Where TSDSCD = 'MODE'
         ") );
 
@@ -167,6 +237,7 @@ class cTBLUSR extends BaseController {
             }
 
             $menuaccess[] = array("TMMENUIY"=>$row->TMMENUIY,
+                                  "TANOMRIY"=>$row->TANOMRIY,
                                   "TMMENU"=>$row->TMMENU,
                                   "TMACES"=>array_values($b),
                                   "HAKAKSES"=>$HakAkses
