@@ -65,7 +65,7 @@ class cMMCTCR extends BaseController {
 
         $this->fnCrtObjTxt($Obj, false, "2", "Panel1", "MCCCNOIY", "IY", "", false);
         $this->fnCrtObjPop($Obj, true, "2", "Panel1", "MCPCNOIY", "MFPCNO", "MFNAME", "Profit Center", "", true, "MMPROF", true, 1);   
-        $this->fnCrtObjTxt($Obj, true, "2", "Panel1", "MCCCNO", "Cost Center Code", "", true, 0, 6, "Big");
+        $this->fnCrtObjTxt($Obj, true, "2", "Panel1", "MCCCNO", "Cost Center Code", "", true, 0, 12, "Big");
         $this->fnCrtObjTxt($Obj, true, "0", "Panel1", "MCNAME", "Cost Center Name", "", true, 0, 0);
         $this->fnCrtObjPop($Obj, true, "2", "Panel1", "MCDEPT", "TSSYCD", "TSSYNM", "Department", "", true, "TBLSYS_DEPT", false, 1);
         $this->fnCrtObjRad($Obj, true, "0", "Panel1", "MCDPFG", "Status", "", "1", "Radio", "DSPLY");

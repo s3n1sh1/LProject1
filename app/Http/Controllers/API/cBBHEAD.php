@@ -111,11 +111,11 @@ class cBBHEAD extends BaseController {
         $this->fnCrtObjPop($Obj, true, "2", "Panel1", "BACURR", "TSSYCD", "TSSYNM", "Currency", "", true
                             , "TBLSYS_CURR", false, 1, "", true);
 
-        $this->fnCrtObjNum($Obj, true, "3", "Panel1", "BATOTL", "Grand Total", "", false, 2);
         $this->fnCrtObjRmk($Obj, true, "0", "Panel1", "BAREMK", "Remark", "", false, 100);
 
         $this->fnCrtObjGrd($Obj, true, "0", "Panel2", "BBLINE", "Detail BKK", true
                             , "AED", "BBHEAD", "LoadBBLINE", "LoadObjBBLINE");
+        $this->fnCrtObjNum($Obj, true, "3", "Panel3", "BATOTL", "Grand Total", "", false, 2);
 
         $this->fnCrtObjDefault($Obj,"BA");
 
@@ -145,8 +145,8 @@ class cBBHEAD extends BaseController {
         switch ($request->Mode) {
             case "1":
                 $fBBHEAD['BATYPE'] = "";
-                $NoUrut = $this->fnGetRec("TBLNOR", "TNNOUR", "TNTABL", "BBHEAD", "");
-                $No = $NoUrut->TNNOUR+1;
+                $NoUrut = $this->fnGetRec("TBLNOR", "TNNOUR", "TNTABL", "BBHEAD", "");                
+                $No = isset($NoUrut->TNNOUR) ? $NoUrut->TNNOUR+1 : 1;
                 $fBBHEAD['BABKNO'] = "BKK-".substr("0000000".$No,-5);
 
                 array_push($SqlStm, array(

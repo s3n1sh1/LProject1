@@ -552,8 +552,12 @@ class BaseController extends Controller {
                               }
                           })
                         ->get();
-
-        return $Rec[0];
+        
+        if (count($Rec) === 0) {
+            return [];
+        } else {
+            return $Rec[0];
+        }
     
     }
 

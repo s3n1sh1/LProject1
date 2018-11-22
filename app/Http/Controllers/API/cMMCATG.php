@@ -57,7 +57,7 @@ class cMMCATG extends BaseController {
         $Obj = [];
 
         $this->fnCrtObjTxt($Obj, false, "2", "Panel1", "C1C1CDIY", "IY", "", false);
-        $this->fnCrtObjTxt($Obj, true, "2", "Panel1", "C1C1CD", "Category Code", "", true, 0, 6, "Big");
+        $this->fnCrtObjTxt($Obj, true, "2", "Panel1", "C1C1CD", "Category Code", "", true, 0, 8, "Big");
         $this->fnCrtObjTxt($Obj, true, "0", "Panel1", "C1NAME", "Category Name", "", true, 0, 0);
         $this->fnCrtObjRad($Obj, true, "0", "Panel1", "C1DPFG", "Status", "", "1", "Radio", "DSPLY");
         $this->fnCrtObjRmk($Obj, true, "0", "Panel1", "C1REMK", "Remark", "", false, 100);

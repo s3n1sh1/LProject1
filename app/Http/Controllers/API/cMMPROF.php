@@ -62,7 +62,7 @@ class cMMPROF extends BaseController {
 
         $this->fnCrtObjTxt($Obj, false, "2", "Panel1", "MFPCNOIY", "IY", "", false);
         $this->fnCrtObjPop($Obj, true, "2", "Panel1", "MFDIVI", "TSSYCD", "TSSYNM", "Divisi", "", true, "TBLSYS_DIVI", false, 1);
-        $this->fnCrtObjTxt($Obj, true, "2", "Panel1", "MFPCNO", "Profit Center Code", "", true, 0, 6, "Big");
+        $this->fnCrtObjTxt($Obj, true, "2", "Panel1", "MFPCNO", "Profit Center Code", "", true, 0, 10, "Big");
         $this->fnCrtObjTxt($Obj, true, "0", "Panel1", "MFNAME", "Profit Center Name", "", true, 0, 0);        
         $this->fnCrtObjRad($Obj, true, "0", "Panel1", "MFDPFG", "Status", "", "1", "Radio", "DSPLY");
         $this->fnCrtObjRmk($Obj, true, "0", "Panel1", "MFREMK", "Remark", "", false, 100);

@@ -22,7 +22,7 @@ class CreateBBLINETable extends BaseMigrations
             $table->decimal('BBTOTL')->nullable(false)->comment('Line Amount');
             $this->AutoCreateKolom('BB', $table);
 
-            $table->unique('BBBKNOIY','BBBLNO');
+            $table->unique(['BBBKNOIY','BBBLNO']);
             $table->foreign('BBBKNOIY')->references('BABKNOIY')->on('BBHEAD');
             $table->foreign('BBC2CDIY')->references('C2C2CDIY')->on('MMCATS');
            
