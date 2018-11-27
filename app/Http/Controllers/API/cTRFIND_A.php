@@ -130,67 +130,126 @@ class cTRFIND_A extends BaseController {
     }
 
 
+    public function StpTRFIND ($request) {
 
-    public function SaveData(Request $request) {
-
-        $fTRFIND = json_encode($request->frmTRFIND_A);
-        $fTRFIND = json_decode($fTRFIND, true);
+        $TRFIND = json_encode($request->frmTRFIND_A);
+        $TRFIND = json_decode($TRFIND, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"TRFIND", 
-                                  "Key"=>"TFFINDIY", 
-                                  "Data"=>$fTRFIND, 
-                                  "Mode"=>$request->Mode,
-                                  "Menu"=>"", 
-                                  "FieldTransDate"=>""));
+                                  "Key"=>['TFFINDIY'], 
+                                  "Data"=>$TRFIND, 
+                                  "Mode"=>$Mode,
+                                  "Menu"=>"TRFIND_A", 
+                                  "FieldTransDate"=>"TFDATE"));
         if (!$HasilCheckBFCS["success"]) {
             return $HasilCheckBFCS;
-        }        
-
-        $SqlStm = [];
-        switch ($request->Mode) {
-            case "1":
-                $Hasil = array("success"=> false, "message"=> " No Permision fo this Action!!!");
-                return response()->jSon($Hasil);
-                break;
-            case "2":
-                // $fTRFIND['TMACES'] = implode("",$fTRFIND['TMACES']);
-                if ($fTRFIND["TFTIPE"] === "A") {
-                    array_push($SqlStm, array(
-                                            "UnikNo"=>$UnikNo,
-                                            "Mode"=>"U",
-                                            "Data"=>$fTRFIND,
-                                            "Table"=>"TRFIND",
-                                            "Field"=>['TFACDT','TFSTAFIY','TFRELO','TFACPL','TFACRM'],
-                                            "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
-                                        ));
-                } else {
-                    array_push($SqlStm, array(
-                                                "UnikNo"=>$UnikNo,
-                                                "Mode"=>"U",
-                                                "Data"=>$fTRFIND,
-                                                "Table"=>"TRFIND",
-                                                "Field"=>['TFBAGNIY','TFRDRM'],
-                                                "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
-                                            ));
-                }
-                break;
-            case "3":                
-                $Hasil = array("success"=> false, "message"=> " No Permision fo this Action!!!");
-                return response()->jSon($Hasil);
-                break;
         }
 
+        switch ($Mode) {
+            case "2":
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+                if ($TRFIND["TFTIPE"] === "A") {
+                    $FinalField = $this->fnGetSintaxCRUD ($TRFIND, $UserName, '2',  
+                                        ['TFACDT','TFSTAFIY','TFRELO','TFACPL','TFACRM'], 
+                                        $UnikNo );
+                } else {
+                    $FinalField = $this->fnGetSintaxCRUD ($TRFIND, $UserName, '2',  
+                                        ['TFBAGNIY','TFRDRM'], 
+                                        $UnikNo );
+                }
 
+                DB::table('TRFIND')
+                    ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
+                    ->update($FinalField);
+
+                break;
+            default:
+                return array("success"=> false, "message"=> " No Permision fo this Action!!!");            
+                break;
+        }
+        // return array("success"=> false, "message"=> "coba ssss disini");
 
     }
+
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTRFIND($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
+
+    }
+
+    // public function SaveDataxxxxxx(Request $request) {
+
+    //     $fTRFIND = json_encode($request->frmTRFIND_A);
+    //     $fTRFIND = json_decode($fTRFIND, true);
+
+    //     $Delimiter = "";
+    //     $UnikNo = $this->fnGenUnikNo($Delimiter);
+
+    //     $HasilCheckBFCS = $this->fnCheckBFCS (
+    //                         array("Table"=>"TRFIND", 
+    //                               "Key"=>"TFFINDIY", 
+    //                               "Data"=>$fTRFIND, 
+    //                               "Mode"=>$request->Mode,
+    //                               "Menu"=>"", 
+    //                               "FieldTransDate"=>""));
+    //     if (!$HasilCheckBFCS["success"]) {
+    //         return $HasilCheckBFCS;
+    //     }        
+
+    //     $SqlStm = [];
+    //     switch ($request->Mode) {
+    //         case "1":
+    //             $Hasil = array("success"=> false, "message"=> " No Permision fo this Action!!!");
+    //             return response()->jSon($Hasil);
+    //             break;
+    //         case "2":
+    //             // $fTRFIND['TMACES'] = implode("",$fTRFIND['TMACES']);
+    //             if ($fTRFIND["TFTIPE"] === "A") {
+    //                 array_push($SqlStm, array(
+    //                                         "UnikNo"=>$UnikNo,
+    //                                         "Mode"=>"U",
+    //                                         "Data"=>$fTRFIND,
+    //                                         "Table"=>"TRFIND",
+    //                                         "Field"=>['TFACDT','TFSTAFIY','TFRELO','TFACPL','TFACRM'],
+    //                                         "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
+    //                                     ));
+    //             } else {
+    //                 array_push($SqlStm, array(
+    //                                             "UnikNo"=>$UnikNo,
+    //                                             "Mode"=>"U",
+    //                                             "Data"=>$fTRFIND,
+    //                                             "Table"=>"TRFIND",
+    //                                             "Field"=>['TFBAGNIY','TFRDRM'],
+    //                                             "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
+    //                                         ));
+    //             }
+    //             break;
+    //         case "3":                
+    //             $Hasil = array("success"=> false, "message"=> " No Permision fo this Action!!!");
+    //             return response()->jSon($Hasil);
+    //             break;
+    //     }
+
+
+    //     $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
+    //     // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
+    //     return response()->jSon($Hasil);
+
+
+    // }
 
 
 }

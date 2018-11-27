@@ -70,68 +70,67 @@ class cMMSTAF extends BaseController {
     }
 
 
-    public function SaveData(Request $request) {
 
+    public function StpMMSTAF ($request) {
 
-        $fMMSTAF = json_encode($request->frmMMSTAF);
-        $fMMSTAF = json_decode($fMMSTAF, true);
+        $MMSTAF = json_encode($request->frmMMSTAF);
+        $MMSTAF = json_decode($MMSTAF, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"MMSTAF", 
                                   "Key"=>['MCSTAFIY'], 
-                                  "Data"=>$fMMSTAF, 
-                                  "Mode"=>$request->Mode,
+                                  "Data"=>$MMSTAF, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fMMSTAF,
-                                        "Table"=>"MMSTAF",
-                                        "Field"=>['MCSTAFIY','MCSTAF','MCNAME','MCTITL','MCDPFG','MCREMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"MCSTAFIY",
-                                    ));
+                $MMSTAF['MCSTAFIY'] = $this->fnTBLNOR ($UserName, "MMSTAF");
+                DB::table('MMSTAF')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $MMSTAF, $UserName, '1', 
+                            ['MCSTAFIY','MCSTAF','MCNAME','MCTITL','MCDPFG','MCREMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fMMSTAF,
-                                        "Table"=>"MMSTAF",
-                                        "Field"=>['MCNAME','MCTITL','MCDPFG','MCREMK'],
-                                        "Where"=> [['MCSTAFIY','=',$fMMSTAF['MCSTAFIY']]]
-                                    ));
+                DB::table('MMSTAF')
+                    ->where('MCSTAFIY',$MMSTAF['MCSTAFIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($MMSTAF, $UserName, '2',  
+                            ['MCNAME','MCTITL','MCDPFG','MCREMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fMMSTAF,
-                                        "Table"=>"MMSTAF",
-                                        "Field"=>['MCSTAFIY'],
-                                        "Where"=>[['MCSTAFIY','=',$fMMSTAF['MCSTAFIY']]]
-                                    ));
+                DB::table('MMSTAF')
+                    ->where('MCSTAFIY',$MMSTAF['MCSTAFIY'])      
+                    ->delete();
                 break;
         }
 
-
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
-
     }
+
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpMMSTAF($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
+
+    }    
 
 }

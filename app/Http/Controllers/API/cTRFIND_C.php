@@ -65,25 +65,28 @@ class cTRFIND_C extends BaseController {
                 ->leftJoin($this->fnDBRaw("Table","MMBAGN"), 'MBBAGNIY', '=', 'TFBAGNIY')    
                 ->where([
                     ['TFFINDIY', '=', $request->TFFINDIY],
+                    ['TFDLFG', '=', '0'],
                   ])
                 ->get();
 
-        $TRFIN1 = DB::table($this->fnDBRaw("Table","TRFIN1"))
-                ->select( 'T1FILE' )
-                ->where([
-                    ['T1FINDIY', '=', $request->TFFINDIY],
-                    ['T1DLFG', '=', '0'],
-                  ])
-                ->get();
+        if (count($TRFIND) != 0) {
+            $TRFIN1 = DB::table($this->fnDBRaw("Table","TRFIN1"))
+                    ->select( 'T1FILE' )
+                    ->where([
+                        ['T1FINDIY', '=', $request->TFFINDIY],
+                        ['T1DLFG', '=', '0'],
+                      ])
+                    ->get();
 
-        $i = 0;
-        $TRFIN1_HASIL = [];
-        foreach($TRFIN1 as $key => $field) {
-            array_push($TRFIN1_HASIL, $this->fnGenDataFile($field->T1FILE));
+            $i = 0;
+            $TRFIN1_HASIL = [];
+            foreach($TRFIN1 as $key => $field) {
+                array_push($TRFIN1_HASIL, $this->fnGenDataFile($field->T1FILE));
 
-            $i++;
+                $i++;
+            }
+            $TRFIND[0]['TRFIN1'] = $TRFIN1_HASIL;
         }
-        $TRFIND[0]['TRFIN1'] = $TRFIN1_HASIL;
 
         $Hasil = $this->fnFillForm(true, $TRFIND, "");
         return response()->jSon($Hasil);        
@@ -111,174 +114,247 @@ class cTRFIND_C extends BaseController {
     }
 
 
+    public function StpTRFIND ($request) {
 
-    public function SaveData(Request $request) {
-
-        $fTRFIND = json_encode($request->frmTRFIND_C);
-        $fTRFIND = json_decode($fTRFIND, true);
+        $TRFIND = json_encode($request->frmTRFIND_C);
+        $TRFIND = json_decode($TRFIND, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"TRFIND", 
-                                  "Key"=>"TFFINDIY", 
-                                  "Data"=>$fTRFIND, 
-                                  "Mode"=>$request->Mode,
-                                  "Menu"=>"", 
-                                  "FieldTransDate"=>""));
+                                  "Key"=>['TFFINDIY'], 
+                                  "Data"=>$TRFIND, 
+                                  "Mode"=>$Mode,
+                                  "Menu"=>"TRFIND_C", 
+                                  "FieldTransDate"=>"TFDATE"));
         if (!$HasilCheckBFCS["success"]) {
             return $HasilCheckBFCS;
-        }        
+        }
 
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                $NoUrut = $this->fnGetRec("TBLNOR", "TNNOUR", "TNTABL", "TRFIND", "");                
-                $No = isset($NoUrut->TNNOUR) ? $NoUrut->TNNOUR+1 : 1;
-                $fTRFIND['TFFINO'] = "5S-".substr("0000000".$No,-5);
+                $TRFIND['TFFINDIY'] = $this->fnTBLNOR ($UserName, "TRFIND");            
+                $TRFIND['TFFINO'] = "5S-".substr("0000000".$TRFIND['TFFINDIY'],-5);
+                DB::table('TRFIND')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $TRFIND, $UserName, '1', 
+                            ['TFFINDIY','TFFINO','TFDATE','TFAREAIY','TFBAGNIY','TFSUBJ','TFDESC','TFSOLU','TFREMK'], 
+                            $UnikNo )
+                    );
 
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fTRFIND,
-                                        "Table"=>"TRFIND",
-                                        "Field"=>['TFFINDIY','TFFINO','TFDATE','TFAREAIY','TFBAGNIY','TFSUBJ','TFDESC','TFSOLU','TFREMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"TFFINDIY"
-                                    ));
-                $i=0;
-                // var_dump($fTRFIND['TRFIN1']);
-                if (is_array($fTRFIND['TRFIN1'])) {
-                    foreach($fTRFIND['TRFIN1'] as $fTRFIN1) {
+                $i = 0;
+                if (is_array($TRFIND['TRFIN1'])) {
+                    foreach($TRFIND['TRFIN1'] as $TRFIN1) {
                         $i++;
-                        $fTRFIN1['T1FILE'] = $this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i);
-                        array_push($SqlStm, array(
-                                                "UnikNo"=>$UnikNo,
-                                                "Mode"=>"I",
-                                                "Data"=>$fTRFIN1,
-                                                "Table"=>"TRFIN1",
-                                                "Field"=>['T1NOMRIY','T1FINDIY','T1FILE'],
-                                                "Where"=>[],
-                                                "Iy"=>"T1NOMRIY",
-                                                "IyReff"=>array("T1FINDIY"=>"TFFINDIY")
-                                            ));
-
+                        $TRFIN1['T1FINDIY'] = $TRFIND['TFFINDIY'];
+                        $TRFIN1['T1NOMRIY'] = $this->fnTBLNOR ($UserName, "TRFIN1");
+                        $TRFIN1['T1FILE'] = $this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i);
+                        DB::table('TRFIN1')
+                            ->insert(
+                                $this->fnGetSintaxCRUD ( $TRFIN1, $UserName, '1', 
+                                    ['T1NOMRIY','T1FINDIY','T1FILE'], 
+                                    $UnikNo )
+                            );
                     }                    
                 }
-
-
                 break;
             case "2":
-                // $fTRFIND['TMACES'] = implode("",$fTRFIND['TMACES']);
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fTRFIND,
-                                        "Table"=>"TRFIND",
-                                        "Field"=>['TFAREAIY','TFBAGNIY','TFSUBJ','TFDESC','TFSOLU','TFREMK'],
-                                        "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
-                                    ));
+                DB::table('TRFIND')
+                    ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TRFIND, $UserName, '2',  
+                            ['TFAREAIY','TFBAGNIY','TFSUBJ','TFDESC','TFSOLU','TFREMK'], 
+                            $UnikNo )
+                    );
+                $i=0;
+                if (is_array($TRFIND['TRFIN1'])) {
+                    DB::table('TRFIN1')
+                        ->where('T1FINDIY','=',$TRFIND['TFFINDIY'])   
+                        ->delete();
 
-                if (is_array($fTRFIND['TRFIN1'])) {
-                    array_push($SqlStm, array(
-                                            "UnikNo"=>$UnikNo,
-                                            "Mode"=>"D",
-                                            "Data"=>[],
-                                            "Table"=>"TRFIN1",
-                                            "Field"=>['T1FINDIY'],
-                                            "Where"=>[['T1FINDIY','=',$fTRFIND['TFFINDIY']]],
-                                        ));
-
-                    $i=0;
-                    foreach($fTRFIND['TRFIN1'] as $fTRFIN1) {
+                    foreach($TRFIND['TRFIN1'] as $TRFIN1) {
                         $i++;
-                        $fTRFIN1['T1FILE'] = $this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i);
-                        $fTRFIN1['T1FINDIY'] = $fTRFIND['TFFINDIY'];
-                        array_push($SqlStm, array(
-                                                "UnikNo"=>$UnikNo,
-                                                "Mode"=>"I",
-                                                "Data"=>$fTRFIN1,
-                                                "Table"=>"TRFIN1",
-                                                "Field"=>['T1NOMRIY','T1FINDIY','T1FILE'],
-                                                "Where"=>[],
-                                                "Iy"=>"T1NOMRIY"
-                                            ));
-
-                    }
+                        $TRFIN1['T1FINDIY'] = $TRFIND['TFFINDIY'];
+                        $TRFIN1['T1NOMRIY'] = $this->fnTBLNOR ($UserName, "TRFIN1");
+                        $TRFIN1['T1FILE'] = $this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i);
+                        DB::table('TRFIN1')
+                            ->insert(
+                                $this->fnGetSintaxCRUD ( $TRFIN1, $UserName, '1', 
+                                    ['T1NOMRIY','T1FINDIY','T1FILE'], 
+                                    $UnikNo )                                
+                            );
+                    }                    
                 }
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"DD",
-                                        "Data"=>[],
-                                        "Table"=>"TRFIND",
-                                        "Field"=>['TFFINDIY'],
-                                        "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
-                                    ));
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"DD",
-                                        "Data"=>[],
-                                        "Table"=>"TRFIN1",
-                                        "Field"=>['T1FINDIY'],
-                                        "Where"=>[['T1FINDIY','=',$fTRFIND['TFFINDIY']]],
-                                    ));
 
+                DB::table('TRFIND')
+                    ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TRFIND, $UserName, '3',  
+                            ['TFFINDIY'], 
+                            $UnikNo )
+                    );
+
+                DB::table('TRFIN1')
+                    ->where('T1FINDIY','=',$TRFIND['TFFINDIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TRFIND, $UserName, '3',  
+                            ['T1FINDIY'], 
+                            $UnikNo )
+                    );
+                                
+                break;
+
+            default:
+                return array("success"=> false, "message"=> " No Permision fo this Action!!!");            
                 break;
         }
-
-
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
-
+        // return array("success"=> false, "message"=> "coba ssss disini");
 
     }
 
-//     public function SaveData(Request $request) {
 
-//         // BEGIN HEADER
-//         $arr = json_encode($request->Form);
-//         $arr = json_decode($arr, true);
-//         $Delimiter = "";
-//         $UnikNo = $this->fnGenUnikNo($Delimiter);
-//         // $s = $this->fnGetSyntax($arr, 'StpTRFIND_C', $request->Mode, $UnikNo);        
-//         $s = $this->fnGetSyntax($request->Source, $request->Username, $request->Mode, 'StpTRFIND_C', $arr, $UnikNo);  
+    public function SaveData(Request $request) {
 
-//         $SQLSTM = $s['all'];
-//         // END HEADER
-// // file_put_contents("abc.txt", $SQLSTM);
-//         // BEGIN FILE
-//         if($request->Mode != '3') {
-//             $arr2 = json_encode($request->File);
-//             $arr2 = json_decode($arr2, true);
-//             $i=0;
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTRFIND($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
-//             if(is_array($arr2)){
-//                 $grid2 = [];
-//                 foreach($arr2 as $contain) {
-//                     $grid2 = [];
+    }
 
-//                     $grid2['T1FINDIY'] = array('Value'=>$arr['TFFINDIY']['Value'],'Tipe'=>'txt');
-//                     $grid2['T1FILE'] = array('Value'=>$this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i),'Tipe'=>'txt');
+    // public function SaveDataXXXXX(Request $request) {
 
-//                     // $s = $this->fnGetSyntax($grid2, 'StpTRFIN1', $request->Mode, $UnikNo);
-//                     $s = $this->fnGetSyntax($request->Source, $request->Username, '1', 'StpTRFIN1', $grid2, $UnikNo);  
-//                     $SQLSTM .= $Delimiter;
-//                     $SQLSTM .= $s['all'];
+    //     $fTRFIND = json_encode($request->frmTRFIND_C);
+    //     $fTRFIND = json_decode($fTRFIND, true);
 
-//                     $i++;
-//                 }
-//             }
-//         }
-//         // END FILE
-// // file_put_contents("def.txt", $SQLSTM);
-//         $HASIL = $this->fnSetExecuteQuery($SQLSTM,$Delimiter);
+    //     $Delimiter = "";
+    //     $UnikNo = $this->fnGenUnikNo($Delimiter);
 
-//         return response()->jSon($HASIL);
-  
-//     }
+    //     $HasilCheckBFCS = $this->fnCheckBFCS (
+    //                         array("Table"=>"TRFIND", 
+    //                               "Key"=>"TFFINDIY", 
+    //                               "Data"=>$fTRFIND, 
+    //                               "Mode"=>$request->Mode,
+    //                               "Menu"=>"TRFIND_C", 
+    //                               "FieldTransDate"=>"TFDATE"));
+    //     if (!$HasilCheckBFCS["success"]) {
+    //         return response()->jSon($HasilCheckBFCS);
+    //     }        
+
+    //     $SqlStm = [];
+    //     switch ($request->Mode) {
+    //         case "1":
+    //             $NoUrut = $this->fnGetRec("TBLNOR", "TNNOUR", "TNTABL", "TRFIND", "");                
+    //             $No = isset($NoUrut->TNNOUR) ? $NoUrut->TNNOUR+1 : 1;
+    //             $fTRFIND['TFFINO'] = "5S-".substr("0000000".$No,-5);
+
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"I",
+    //                                     "Data"=>$fTRFIND,
+    //                                     "Table"=>"TRFIND",
+    //                                     "Field"=>['TFFINDIY','TFFINO','TFDATE','TFAREAIY','TFBAGNIY','TFSUBJ','TFDESC','TFSOLU','TFREMK'],
+    //                                     "Where"=>[],
+    //                                     "Iy"=>"TFFINDIY"
+    //                                 ));
+    //             $i=0;
+    //             // var_dump($fTRFIND['TRFIN1']);
+    //             if (is_array($fTRFIND['TRFIN1'])) {
+    //                 foreach($fTRFIND['TRFIN1'] as $fTRFIN1) {
+    //                     $i++;
+    //                     $fTRFIN1['T1FILE'] = $this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i);
+    //                     array_push($SqlStm, array(
+    //                                             "UnikNo"=>$UnikNo,
+    //                                             "Mode"=>"I",
+    //                                             "Data"=>$fTRFIN1,
+    //                                             "Table"=>"TRFIN1",
+    //                                             "Field"=>['T1NOMRIY','T1FINDIY','T1FILE'],
+    //                                             "Where"=>[],
+    //                                             "Iy"=>"T1NOMRIY",
+    //                                             "IyReff"=>array("T1FINDIY"=>"TFFINDIY")
+    //                                         ));
+
+    //                 }                    
+    //             }
+
+
+    //             break;
+    //         case "2":
+    //             // $fTRFIND['TMACES'] = implode("",$fTRFIND['TMACES']);
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"U",
+    //                                     "Data"=>$fTRFIND,
+    //                                     "Table"=>"TRFIND",
+    //                                     "Field"=>['TFAREAIY','TFBAGNIY','TFSUBJ','TFDESC','TFSOLU','TFREMK'],
+    //                                     "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
+    //                                 ));
+
+    //             if (is_array($fTRFIND['TRFIN1'])) {
+    //                 array_push($SqlStm, array(
+    //                                         "UnikNo"=>$UnikNo,
+    //                                         "Mode"=>"D",
+    //                                         "Data"=>[],
+    //                                         "Table"=>"TRFIN1",
+    //                                         "Field"=>['T1FINDIY'],
+    //                                         "Where"=>[['T1FINDIY','=',$fTRFIND['TFFINDIY']]],
+    //                                     ));
+
+    //                 $i=0;
+    //                 foreach($fTRFIND['TRFIN1'] as $fTRFIN1) {
+    //                     $i++;
+    //                     $fTRFIN1['T1FILE'] = $this->fnGenBinaryFile($request->File, 'TRFIN1_'.$i);
+    //                     $fTRFIN1['T1FINDIY'] = $fTRFIND['TFFINDIY'];
+    //                     array_push($SqlStm, array(
+    //                                             "UnikNo"=>$UnikNo,
+    //                                             "Mode"=>"I",
+    //                                             "Data"=>$fTRFIN1,
+    //                                             "Table"=>"TRFIN1",
+    //                                             "Field"=>['T1NOMRIY','T1FINDIY','T1FILE'],
+    //                                             "Where"=>[],
+    //                                             "Iy"=>"T1NOMRIY"
+    //                                         ));
+    //                 }
+    //             }
+    //             break;
+    //         case "3":
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"DD",
+    //                                     "Data"=>[],
+    //                                     "Table"=>"TRFIND",
+    //                                     "Field"=>['TFFINDIY'],
+    //                                     "Where"=>[['TFFINDIY','=',$fTRFIND['TFFINDIY']]],
+    //                                 ));
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"DD",
+    //                                     "Data"=>[],
+    //                                     "Table"=>"TRFIN1",
+    //                                     "Field"=>['T1FINDIY'],
+    //                                     "Where"=>[['T1FINDIY','=',$fTRFIND['TFFINDIY']]],
+    //                                 ));
+
+    //             break;
+    //     }
+
+
+    //     $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
+    //     // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
+    //     // $Hasil = array("success"=> false, "message"=> " Sukses... ");
+    //     return response()->jSon($Hasil);
+
+
+    // }
+
 
 }

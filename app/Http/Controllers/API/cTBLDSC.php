@@ -68,65 +68,67 @@ class cTBLDSC extends BaseController {
         return response()->jSon($Obj);   
     }
 
-    public function SaveData(Request $request) {
 
 
-        $fTBLDSC = json_encode($request->frmTBLDSC);
-        $fTBLDSC = json_decode($fTBLDSC, true);
+    public function StpTBLDSC ($request) {
+
+        $TBLDSC = json_encode($request->frmTBLDSC);
+        $TBLDSC = json_decode($TBLDSC, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"TBLDSC", 
-                                  "Key"=>"TDDSCD", 
-                                  "Data"=>$fTBLDSC, 
-                                  "Mode"=>$request->Mode,
+                                  "Key"=>['TDDSCD'], 
+                                  "Data"=>$TBLDSC, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fTBLDSC,
-                                        "Table"=>"TBLDSC",
-                                        "Field"=>['TDDSCD','TDDSNM','TDLGTH','TDDPFG','TDREMK'],
-                                        "Where"=>[],
-                                    ));
+                DB::table('TBLDSC')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $TBLDSC, $UserName, '1', 
+                                    ['TDDSCD','TDDSNM','TDLGTH','TDDPFG','TDREMK'], 
+                                    $UnikNo )
+                    );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fTBLDSC,
-                                        "Table"=>"TBLDSC",
-                                        "Field"=>['TDDSNM','TDLGTH','TDDPFG','TDREMK'],
-                                        "Where"=>[['TDDSCD','=',$fTBLDSC['TDDSCD']]],
-                                    ));
+                DB::table('TBLDSC')
+                    ->where('TDDSCD',$TBLDSC['TDDSCD'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLDSC, $UserName, '2',  
+                                    ['TDDSNM','TDLGTH','TDDPFG','TDREMK'], 
+                                    $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fTBLDSC,
-                                        "Table"=>"TBLDSC",
-                                        "Field"=>['TDDSCD'],
-                                        "Where"=>[['TDDSCD','=',$fTBLDSC['TDDSCD']]],
-                                    ));
+                DB::table('TBLDSC')
+                    ->where('TDDSCD',$TBLDSC['TDDSCD'])      
+                    ->delete();
                 break;
         }
+        // return array("success"=> false, "message"=> "coba ssss disini");
+
+    }
 
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTBLDSC($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
     }
 

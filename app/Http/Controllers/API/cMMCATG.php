@@ -68,68 +68,68 @@ class cMMCATG extends BaseController {
     }
 
 
-    public function SaveData(Request $request) {
 
+    public function StpMMCATG ($request) {
 
-        $fMMCATG = json_encode($request->frmMMCATG);
-        $fMMCATG = json_decode($fMMCATG, true);
+        $MMCATG = json_encode($request->frmMMCATG);
+        $MMCATG = json_decode($MMCATG, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"MMCATG", 
                                   "Key"=>['C1C1CDIY'], 
-                                  "Data"=>$fMMCATG, 
-                                  "Mode"=>$request->Mode,
+                                  "Data"=>$MMCATG, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fMMCATG,
-                                        "Table"=>"MMCATG",
-                                        "Field"=>['C1C1CDIY','C1C1CD','C1NAME','C1DPFG','C1REMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"C1C1CDIY",
-                                    ));
+                $MMCATG['C1C1CDIY'] = $this->fnTBLNOR ($UserName, "MMCATG");
+                DB::table('MMCATG')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $MMCATG, $UserName, '1', 
+                            ['C1C1CDIY','C1C1CD','C1NAME','C1DPFG','C1REMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fMMCATG,
-                                        "Table"=>"MMCATG",
-                                        "Field"=>['C1NAME','C1DPFG','C1REMK'],
-                                        "Where"=> [['C1C1CDIY','=',$fMMCATG['C1C1CDIY']]]
-                                    ));
+                DB::table('MMCATG')
+                    ->where('C1C1CDIY',$MMCATG['C1C1CDIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($MMCATG, $UserName, '2',  
+                            ['C1NAME','C1DPFG','C1REMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fMMCATG,
-                                        "Table"=>"MMCATG",
-                                        "Field"=>['C1C1CDIY'],
-                                        "Where"=>[['C1C1CDIY','=',$fMMCATG['C1C1CDIY']]]
-                                    ));
+                DB::table('MMCATG')
+                    ->where('C1C1CDIY',$MMCATG['C1C1CDIY'])      
+                    ->delete();
                 break;
         }
 
+    }
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpMMCATG($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
     }
+
 
 }

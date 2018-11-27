@@ -76,70 +76,68 @@ class cMMCTCR extends BaseController {
         return response()->jSon($Obj);   
     }
 
+    public function StpMMCTCR ($request) {
 
-
-    public function SaveData(Request $request) {
-
-
-        $fMMCTCR = json_encode($request->frmMMCTCR);
-        $fMMCTCR = json_decode($fMMCTCR, true);
+        $MMCTCR = json_encode($request->frmMMCTCR);
+        $MMCTCR = json_decode($MMCTCR, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"MMCTCR", 
                                   "Key"=>['MCCCNOIY'], 
-                                  "Data"=>$fMMCTCR, 
-                                  "Mode"=>$request->Mode,
+                                  "Data"=>$MMCTCR, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fMMCTCR,
-                                        "Table"=>"MMCTCR",
-                                        "Field"=>['MCCCNOIY','MCCCNO','MCNAME','MCPCNOIY','MCDEPT','MCDPFG','MCREMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"MCCCNOIY",
-                                    ));
+                $MMCTCR['MCCCNOIY'] = $this->fnTBLNOR ($UserName, "MMCTCR");
+                DB::table('MMCTCR')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $MMCTCR, $UserName, '1', 
+                            ['MCCCNOIY','MCCCNO','MCNAME','MCPCNOIY','MCDEPT','MCDPFG','MCREMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fMMCTCR,
-                                        "Table"=>"MMCTCR",
-                                        "Field"=>['MCNAME','MCDPFG','MCREMK'],
-                                        "Where"=> [['MCCCNOIY','=',$fMMCTCR['MCCCNOIY']]]
-                                    ));
+                DB::table('MMCTCR')
+                    ->where('MCCCNOIY',$MMCTCR['MCCCNOIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($MMCTCR, $UserName, '2',  
+                            ['MCNAME','MCDPFG','MCREMK'], 
+                            $UnikNo )                        
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fMMCTCR,
-                                        "Table"=>"MMCTCR",
-                                        "Field"=>['MCCCNOIY'],
-                                        "Where"=>[['MCCCNOIY','=',$fMMCTCR['MCCCNOIY']]]
-                                    ));
+                DB::table('MMCTCR')
+                    ->where('MCCCNOIY',$MMCTCR['MCCCNOIY'])      
+                    ->delete();
                 break;
         }
 
+        // return array("success"=> false, "message"=> "coba ssss disini");
+    }
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpMMCTCR($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
     }
+
 
 }

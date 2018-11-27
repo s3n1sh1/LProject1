@@ -72,7 +72,149 @@ class cTBLUSR extends BaseController {
         return response()->jSon($Obj);   
     }
 
+
+
+    public function StpTBLUSR ($request) {
+
+        $TBLUSR = json_encode($request->frmTBLUSR);
+        $TBLUSR = json_decode($TBLUSR, true);
+
+        $fTBLUAM = json_encode($request->frmTBLUAM);
+        $fTBLUAM = json_decode($fTBLUAM, true);
+
+        $Delimiter = "";
+        $UnikNo = $this->fnGenUnikNo($Delimiter);
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
+
+        $HasilCheckBFCS = $this->fnCheckBFCS (
+                            array("Table"=>"TBLUSR", 
+                                  "Key"=>['TUUSERIY'], 
+                                  "Data"=>$TBLUSR, 
+                                  "Mode"=>$Mode,
+                                  "Menu"=>"", 
+                                  "FieldTransDate"=>""));
+        if (!$HasilCheckBFCS["success"]) {
+            return $HasilCheckBFCS;
+        }
+
+        switch ($Mode) {
+            case "1":
+                $TBLUSR['TUUSERIY'] = $this->fnTBLNOR ($UserName, "TBLUSR");
+                DB::table('TBLUSR')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $TBLUSR, $UserName, '1', 
+                            ['TUUSERIY','TUUSER','TUNAME','TUPSWD','TUEMID','TUDPFG','TUREMK'], 
+                            $UnikNo )
+                    );
+
+
+                $i=0;
+                if (is_array($fTBLUAM['TBLUAM'])) {
+                    foreach($fTBLUAM['TBLUAM'] as $TBLUAM) {
+                        $i++;
+                        $TBLUAM['TAUSERIY'] = $TBLUSR['TUUSERIY'];
+                        $TBLUAM['TAMENUIY'] = $TBLUAM['TMMENUIY'];
+                        $TBLUAM['TAACES'] = implode("",$TBLUAM['HAKAKSES']);
+                        DB::table('TBLUAM')
+                            ->insert(
+                                $this->fnGetSintaxCRUD ( $TBLUAM, $UserName, '1', 
+                                    ['TAUSERIY','TAMENUIY','TAACES'], 
+                                    $UnikNo )
+                            );
+                    }                    
+                }
+
+                break;
+            case "2":
+                DB::table('TBLUSR')
+                    ->where('TUUSERIY','=',$TBLUSR['TUUSERIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLUSR, $UserName, '2',  
+                            ['TUEMID','TUDPFG','TUREMK'], 
+                            $UnikNo )
+                    );
+
+                DB::table('TBLUAM')
+                    ->where('TAUSERIY','=',$TBLUSR['TUUSERIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLUSR, $UserName, '3',  
+                            ['TAUSERIY'], 
+                            $UnikNo )
+                    );
+
+                $i = 0;
+                if (is_array($fTBLUAM['TBLUAM'])) {
+                    foreach($fTBLUAM['TBLUAM'] as $TBLUAM) {
+                        $i++;
+                        $TBLUAM['TAUSERIY'] = $TBLUSR['TUUSERIY'];
+
+                        if ($TBLUAM['TANOMRIY']=="") {
+                            $TBLUAM['TAUSERIY'] = $TBLUSR['TUUSERIY'];
+                            $TBLUAM['TAMENUIY'] = $TBLUAM['TMMENUIY'];
+                            $TBLUAM['TAACES'] = implode("",$TBLUAM['HAKAKSES']);
+                            DB::table('TBLUAM')
+                                ->insert(
+                                    $this->fnGetSintaxCRUD ( $TBLUAM, $UserName, '1', 
+                                        ['TAUSERIY','TAMENUIY','TAACES'], 
+                                        $UnikNo )
+                                );
+                        } else {
+                            $TBLUAM['TAACES'] = implode("",$TBLUAM['HAKAKSES']);
+                            DB::table('TBLUAM')
+                                ->where('TANOMRIY','=',$TBLUAM['TANOMRIY'])
+                                ->update(
+                                    $this->fnGetSintaxCRUD ( $TBLUAM, $UserName, '2', 
+                                        ['TAACES'], 
+                                        $UnikNo )
+                                );
+                        }
+                    }                    
+                }
+
+                break;
+            case "3":
+                DB::table('TBLUSR')
+                    ->where('TUUSERIY','=',$TBLUSR['TUUSERIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLUSR, $UserName, '3',  
+                            ['TUUSERIY'], 
+                            $UnikNo )
+                    );
+
+                DB::table('TBLUAM')
+                    ->where('TAUSERIY','=',$TBLUSR['TUUSERIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLUSR, $UserName, '3',  
+                            ['TAUSERIY'], 
+                            $UnikNo )
+                    );
+
+                break;
+
+            default:
+                return array("success"=> false, "message"=> " No Permision fo this Action!!!");            
+                break;
+        }
+        // return array("success"=> false, "message"=> "coba ssss disini");
+
+    }
+
+
     public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTBLUSR($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
+
+    }
+
+
+    public function SaveDataXXXX(Request $request) {
 
         $fTBLUSR = json_encode($request->frmTBLUSR);
         $fTBLUSR = json_decode($fTBLUSR, true);

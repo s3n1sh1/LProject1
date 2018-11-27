@@ -68,67 +68,65 @@ class cMMAREA extends BaseController {
     }
 
 
-    public function SaveData(Request $request) {
+    public function StpMMAREA ($request) {
 
-
-        $fMMAREA = json_encode($request->frmMMAREA);
-        $fMMAREA = json_decode($fMMAREA, true);
+        $MMAREA = json_encode($request->frmMMAREA);
+        $MMAREA = json_decode($MMAREA, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"MMAREA", 
                                   "Key"=>['MAAREAIY'], 
-                                  "Data"=>$fMMAREA, 
-                                  "Mode"=>$request->Mode,
+                                  "Data"=>$MMAREA, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fMMAREA,
-                                        "Table"=>"MMAREA",
-                                        "Field"=>['MAAREAIY','MAAREA','MANAME','MADPFG','MAREMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"MAAREAIY",
-                                    ));
+                $MMAREA['MAAREAIY'] = $this->fnTBLNOR ($UserName, "MMAREA");
+                DB::table('MMAREA')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $MMAREA, $UserName, '1', 
+                            ['MAAREAIY','MAAREA','MANAME','MADPFG','MAREMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fMMAREA,
-                                        "Table"=>"MMAREA",
-                                        "Field"=>['MANAME','MADPFG','MAREMK'],
-                                        "Where"=> [['MAAREAIY','=',$fMMAREA['MAAREAIY']]]
-                                    ));
+                DB::table('MMAREA')
+                    ->where('MAAREAIY',$MMAREA['MAAREAIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($MMAREA, $UserName, '2',  
+                            ['MANAME','MADPFG','MAREMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fMMAREA,
-                                        "Table"=>"MMAREA",
-                                        "Field"=>['MAAREAIY'],
-                                        "Where"=>[['MAAREAIY','=',$fMMAREA['MAAREAIY']]]
-                                    ));
+                DB::table('MMAREA')
+                    ->where('MAAREAIY',$MMAREA['MAAREAIY'])      
+                    ->delete();
                 break;
         }
 
+    }
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpMMAREA($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
     }
 

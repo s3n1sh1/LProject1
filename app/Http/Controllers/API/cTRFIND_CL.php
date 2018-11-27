@@ -39,7 +39,9 @@ class cTRFIND_CL extends BaseController {
                 ->where([
                     ['TFDLFG', '=', '0'],
                   ])
-                ->whereNull('TFCLDT');                
+                ->whereNull('TFCLDT')
+                ->whereNotNull('TFSLDT')
+                ->whereNotNull('TFACDT');                
         $TRFIND = $this->fnQuerySearchAndPaginate($request, $TRFIND, $Obj, $Sort, $Filter, $ColumnGrid);
 
         $Hasil = array( "Data"=> $TRFIND,
@@ -140,7 +142,72 @@ class cTRFIND_CL extends BaseController {
     }
 
 
+
+
+    public function StpTRFIND ($request) {
+
+        $TRFIND = json_encode($request->frmTRFIND_CL);
+        $TRFIND = json_decode($TRFIND, true);
+
+        $Delimiter = "";
+        $UnikNo = $this->fnGenUnikNo($Delimiter);
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
+
+
+        switch ($Mode) {
+            case "7":
+                if (is_array($TRFIND)) {
+
+                    foreach($TRFIND as $fCloseData) {
+
+                        $fCloseData['TFCLDT'] = date('Ymd');
+                        $fCloseData['TFCLBY'] = 'UserA';
+
+                        $HasilCheckBFCS = $this->fnCheckBFCS (
+                                            array("Table"=>"TRFIND", 
+                                                  "Key"=>['TFFINDIY'], 
+                                                  "Data"=>$fCloseData, 
+                                                  "Mode"=>$Mode,
+                                                  "Menu"=>"TRFIND_CL", 
+                                                  "FieldTransDate"=>"TFDATE"));
+                        if (!$HasilCheckBFCS["success"]) {
+                            return $HasilCheckBFCS;
+                        }
+
+                        DB::table('TRFIND')
+                            ->where('TFFINDIY','=',$fCloseData['TFFINDIY'])
+                            ->update(
+                                $this->fnGetSintaxCRUD ($fCloseData, $UserName, '2',  
+                                    ['TFCLDT','TFCLBY'], 
+                                    $UnikNo )
+                            );
+                    }
+                }
+                break;
+            default:
+                return array("success"=> false, "message"=> " No Permision fo this Action!!!");            
+                break;
+                                
+        }
+        // return array("success"=> false, "message"=> "coba menu disini");
+
+    }
+
+
     public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTRFIND($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
+
+    }
+
+    public function SaveDataXXXX(Request $request) {
 
         $fTRFIND = json_encode($request->frmTRFIND_CL);
         $fTRFIND = json_decode($fTRFIND, true);

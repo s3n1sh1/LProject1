@@ -100,72 +100,139 @@ class cTBLMNU extends BaseController {
 
 
 
-    public function SaveData(Request $request) {
+    public function StpTBLMNU ($request) {
 
-
-        $fTBLMNU = json_encode($request->frmTBLMNU);
-        $fTBLMNU = json_decode($fTBLMNU, true);
+        $TBLMNU = json_encode($request->frmTBLMNU);
+        $TBLMNU = json_decode($TBLMNU, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"TBLMNU", 
-                                  "Key"=>"TMMENUIY", 
-                                  "Data"=>$fTBLMNU, 
-                                  "Mode"=>$request->Mode,
+                                  "Key"=>['TMMENUIY'], 
+                                  "Data"=>$TBLMNU, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
             return $HasilCheckBFCS;
         }
 
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                $fTBLMNU['TMACES'] = implode("",$fTBLMNU['TMACES']);
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fTBLMNU,
-                                        "Table"=>"TBLMNU",
-                                        "Field"=>['TMMENUIY','TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG',
-                                                  'TMBCDT','TMFWDT','TMURLW','TMGRUP','TMUSRM','TMREMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"TMMENUIY"
-                                    ));
+                $TBLMNU['TMMENUIY'] = $this->fnTBLNOR ($UserName, "TBLMNU");
+                $TBLMNU['TMACES'] = implode("",$TBLMNU['TMACES']);
+                DB::table('TBLMNU')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $TBLMNU, $UserName, '1', 
+                                    ['TMMENUIY','TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG',
+                                     'TMBCDT','TMFWDT','TMURLW','TMGRUP','TMUSRM','TMREMK'], 
+                                    $UnikNo )
+                    );
                 break;
             case "2":
-                $fTBLMNU['TMACES'] = implode("",$fTBLMNU['TMACES']);
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fTBLMNU,
-                                        "Table"=>"TBLMNU",
-                                        "Field"=>['TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG','TMBCDT','TMFWDT',
-                                                  'TMURLW','TMGRUP','TMUSRM','TMREMK'],
-                                        "Where"=>[['TMMENUIY','=',$fTBLMNU['TMMENUIY']]],
-                                    ));
+                $TBLMNU['TMACES'] = implode("",$TBLMNU['TMACES']);
+                DB::table('TBLMNU')
+                    ->where('TMMENUIY','=',$TBLMNU['TMMENUIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLMNU, $UserName, '2',  
+                                    ['TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG','TMBCDT','TMFWDT',
+                                     'TMURLW','TMGRUP','TMUSRM','TMREMK'], 
+                                    $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fTBLMNU,
-                                        "Table"=>"TBLMNU",
-                                        "Field"=>['TMMENUIY'],
-                                        "Where"=>[['TMMENUIY','=',$fTBLMNU['TMMENUIY']]],
-                                    ));
-
+                DB::table('TBLMNU')
+                    ->where('TMMENUIY','=',$TBLMNU['TMMENUIY'])   
+                    ->delete();
                 break;
         }
-
-
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+        // return array("success"=> false, "message"=> "coba menu disini");
 
     }
+
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTBLMNU($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
+
+    }
+
+    // public function SaveData(Request $request) {
+
+
+    //     $fTBLMNU = json_encode($request->frmTBLMNU);
+    //     $fTBLMNU = json_decode($fTBLMNU, true);
+
+    //     $Delimiter = "";
+    //     $UnikNo = $this->fnGenUnikNo($Delimiter);
+
+    //     $HasilCheckBFCS = $this->fnCheckBFCS (
+    //                         array("Table"=>"TBLMNU", 
+    //                               "Key"=>"TMMENUIY", 
+    //                               "Data"=>$fTBLMNU, 
+    //                               "Mode"=>$request->Mode,
+    //                               "Menu"=>"", 
+    //                               "FieldTransDate"=>""));
+    //     if (!$HasilCheckBFCS["success"]) {
+    //         return $HasilCheckBFCS;
+    //     }
+
+    //     $SqlStm = [];
+    //     switch ($request->Mode) {
+    //         case "1":
+    //             $fTBLMNU['TMACES'] = implode("",$fTBLMNU['TMACES']);
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"I",
+    //                                     "Data"=>$fTBLMNU,
+    //                                     "Table"=>"TBLMNU",
+    //                                     "Field"=>['TMMENUIY','TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG',
+    //                                               'TMBCDT','TMFWDT','TMURLW','TMGRUP','TMUSRM','TMREMK'],
+    //                                     "Where"=>[],
+    //                                     "Iy"=>"TMMENUIY"
+    //                                 ));
+    //             break;
+    //         case "2":
+    //             $fTBLMNU['TMACES'] = implode("",$fTBLMNU['TMACES']);
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"U",
+    //                                     "Data"=>$fTBLMNU,
+    //                                     "Table"=>"TBLMNU",
+    //                                     "Field"=>['TMNOMR','TMSCUT','TMMENU','TMACES','TMDPFG','TMSYFG','TMBCDT','TMFWDT',
+    //                                               'TMURLW','TMGRUP','TMUSRM','TMREMK'],
+    //                                     "Where"=>[['TMMENUIY','=',$fTBLMNU['TMMENUIY']]],
+    //                                 ));
+    //             break;
+    //         case "3":
+    //             array_push($SqlStm, array(
+    //                                     "UnikNo"=>$UnikNo,
+    //                                     "Mode"=>"D",
+    //                                     "Data"=>$fTBLMNU,
+    //                                     "Table"=>"TBLMNU",
+    //                                     "Field"=>['TMMENUIY'],
+    //                                     "Where"=>[['TMMENUIY','=',$fTBLMNU['TMMENUIY']]],
+    //                                 ));
+
+    //             break;
+    //     }
+
+
+    //     $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);
+    //     // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
+    //     return response()->jSon($Hasil);
+
+    // }
 
 
     // public function SaveData(Request $request) {

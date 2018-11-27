@@ -68,68 +68,67 @@ class cMMBAGN extends BaseController {
     }
 
 
-    public function SaveData(Request $request) {
 
+    public function StpMMBAGN ($request) {
 
-        $fMMBAGN = json_encode($request->frmMMBAGN);
-        $fMMBAGN = json_decode($fMMBAGN, true);
+        $MMBAGN = json_encode($request->frmMMBAGN);
+        $MMBAGN = json_decode($MMBAGN, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"MMBAGN", 
                                   "Key"=>['MBBAGNIY'], 
-                                  "Data"=>$fMMBAGN, 
-                                  "Mode"=>$request->Mode,
+                                  "Data"=>$MMBAGN, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fMMBAGN,
-                                        "Table"=>"MMBAGN",
-                                        "Field"=>['MBBAGNIY','MBBAGN','MBNAME','MBDPFG','MBREMK'],
-                                        "Where"=>[],
-                                        "Iy"=>"MBBAGNIY",
-                                    ));
+                $MMBAGN['MBBAGNIY'] = $this->fnTBLNOR ($UserName, "MMBAGN");
+                DB::table('MMBAGN')->insert(
+                    $this->fnGetSintaxCRUD ( $MMBAGN, $UserName, '1', 
+                        ['MBBAGNIY','MBBAGN','MBNAME','MBDPFG','MBREMK'], 
+                        $UnikNo )
+                );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fMMBAGN,
-                                        "Table"=>"MMBAGN",
-                                        "Field"=>['MBNAME','MBDPFG','MBREMK'],
-                                        "Where"=> [['MBBAGNIY','=',$fMMBAGN['MBBAGNIY']]]
-                                    ));
+                DB::table('MMBAGN')
+                    ->where('MBBAGNIY',$MMBAGN['MBBAGNIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($MMBAGN, $UserName, '2',  
+                            ['MBNAME','MBDPFG','MBREMK'], 
+                            $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fMMBAGN,
-                                        "Table"=>"MMBAGN",
-                                        "Field"=>['MBBAGNIY'],
-                                        "Where"=>[['MBBAGNIY','=',$fMMBAGN['MBBAGNIY']]]
-                                    ));
+                DB::table('MMBAGN')
+                    ->where('MBBAGNIY',$MMBAGN['MBBAGNIY'])      
+                    ->delete();
                 break;
         }
 
+    }
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpMMBAGN($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
     }
+    
 
 }

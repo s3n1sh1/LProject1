@@ -116,73 +116,77 @@ class cTBLSYS extends BaseController {
         return response()->jSon($Obj);
     }
 
-    public function SaveData(Request $request) {
 
+    public function StpTBLSYS ($request) {
 
-        $fTBLSYS = json_encode($request->frmTBLSYS);
-        $fTBLSYS = json_decode($fTBLSYS, true);
+        $TBLSYS = json_encode($request->frmTBLSYS);
+        $TBLSYS = json_decode($TBLSYS, true);
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
                             array("Table"=>"TBLSYS", 
                                   "Key"=>['TSDSCD','TSSYCD'], 
-                                  "Data"=>$fTBLSYS, 
-                                  "Mode"=>$request->Mode,
+                                  "Data"=>$TBLSYS, 
+                                  "Mode"=>$Mode,
                                   "Menu"=>"", 
                                   "FieldTransDate"=>""));
         if (!$HasilCheckBFCS["success"]) {
-            return response()->jSon($HasilCheckBFCS);
+            return $HasilCheckBFCS;
         }
 
-
-        
-        $SqlStm = [];
-        switch ($request->Mode) {
+        switch ($Mode) {
             case "1":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"I",
-                                        "Data"=>$fTBLSYS,
-                                        "Table"=>"TBLSYS",
-                                        "Field"=>['TSDSCD','TSSYCD','TSSYNM','TSDPFG','TSREMK',
-                                                  'TSSYT1','TSLST1','TSSYT2','TSLST2','TSSYT3','TSLST3',
-                                                  'TSSYV1','TSLSV1','TSSYV2','TSLSV2','TSSYV3','TSLSV3'],
-                                        "Where"=>[],
-                                    ));
+                $TBLSYS['TDDSCD'] = $this->fnTBLNOR ($UserName, "TBLSYS");
+                DB::table('TBLSYS')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $TBLSYS, $UserName, '1', 
+                                    ['TSDSCD','TSSYCD','TSSYNM','TSDPFG','TSREMK',
+                                     'TSSYT1','TSLST1','TSSYT2','TSLST2','TSSYT3','TSLST3',
+                                     'TSSYV1','TSLSV1','TSSYV2','TSLSV2','TSSYV3','TSLSV3'], 
+                                    $UnikNo )
+                    );
                 break;
             case "2":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"U",
-                                        "Data"=>$fTBLSYS,
-                                        "Table"=>"TBLSYS",
-                                        "Field"=>['TSDSCD','TSSYCD','TSSYNM','TSDPFG','TSREMK',
-                                                  'TSSYT1','TSLST1','TSSYT2','TSLST2','TSSYT3','TSLST3',
-                                                  'TSSYV1','TSLSV1','TSSYV2','TSLSV2','TSSYV3','TSLSV3'],
-                                        "Where"=> [['TSDSCD','=',$fTBLSYS['TSDSCD']],
-                                                   ['TSSYCD','=',$fTBLSYS['TSSYCD']]]
-                                    ));
+                DB::table('TBLSYS')
+                    ->where([
+                             ['TSDSCD','=',$TBLSYS['TSDSCD']],
+                             ['TSSYCD','=',$TBLSYS['TSSYCD']]
+                            ])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($TBLSYS, $UserName, '2',  
+                                    ['TSSYNM','TSDPFG','TSREMK',
+                                     'TSSYT1','TSLST1','TSSYT2','TSLST2','TSSYT3','TSLST3',
+                                     'TSSYV1','TSLSV1','TSSYV2','TSLSV2','TSSYV3','TSLSV3'], 
+                                    $UnikNo )
+                    );
                 break;
             case "3":
-                array_push($SqlStm, array(
-                                        "UnikNo"=>$UnikNo,
-                                        "Mode"=>"D",
-                                        "Data"=>$fTBLSYS,
-                                        "Table"=>"TBLSYS",
-                                        "Field"=>['TSDSCD','TSSYCD'],
-                                        "Where"=>[['TSDSCD','=',$fTBLSYS['TSDSCD']],
-                                                  ['TSSYCD','=',$fTBLSYS['TSSYCD']]]
-                                    ));
+                DB::table('TBLSYS')
+                    ->where([
+                             ['TSDSCD','=',$TBLSYS['TSDSCD']],
+                             ['TSSYCD','=',$TBLSYS['TSSYCD']]
+                            ])      
+                    ->delete();
                 break;
         }
+        // return array("success"=> false, "message"=> "coba cccc disini");
+
+    }
 
 
-        $Hasil = $this->fnSetExecuteQuery($SqlStm,$Delimiter);        
-        // $Hasil = array("success"=> $BerHasil, "message"=> " Sukses... ".$message.$b);
-        return response()->jSon($Hasil);
+    public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpTBLSYS($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
 
     }
 

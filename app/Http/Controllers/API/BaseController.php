@@ -647,7 +647,7 @@ class BaseController extends Controller {
         return date('Ymd_His_').strrev($Delimiter);
     }
 
-    function fnGetSintaxCRUD ($AllField, $Mode, $Prefix, $Fields, $UnikNo) {
+    function fnGetSintaxCRUD ($AllField, $UserName, $Mode, $Fields, $UnikNo) {
 
         $FinalField = array_filter( $AllField,
                             function ($key) use ($Fields) {
@@ -656,16 +656,18 @@ class BaseController extends Controller {
                             ARRAY_FILTER_USE_KEY
                         );
 
+        $Prefix = SubStr($Fields[0],0,2);
+
         switch ($Mode) {
             case "1":
                 $FinalField = array_merge($FinalField, array(
                                             $Prefix."DLFG"=>"0",
-                                            $Prefix."RGID"=>"UserA",
+                                            $Prefix."RGID"=>$UserName,
                                             $Prefix."RGDT"=>Date("Y-m-d H:i:s"),
-                                            $Prefix."CHID"=>"UserA",
+                                            $Prefix."CHID"=>$UserName,
                                             $Prefix."CHDT"=>Date("Y-m-d H:i:s"),
                                             $Prefix."CHNO"=>"0",
-                                            $Prefix."CSID"=>"UserA",
+                                            $Prefix."CSID"=>$UserName,
                                             $Prefix."CSDT"=>Date("Y-m-d H:i:s"),
                                             $Prefix."CSNO"=>$UnikNo
                                         ));
@@ -673,27 +675,27 @@ class BaseController extends Controller {
             case "2": 
                 $FinalField = array_merge($FinalField, array(
                                             $Prefix."DLFG"=>"0",
-                                            $Prefix."CHID"=>"UserA",
+                                            $Prefix."CHID"=>$UserName,
                                             $Prefix."CHDT"=>Date("Y-m-d H:i:s"),
                                             // $Prefix."CHNO"=>$AllField[$Prefix."CHNO"]+1,
                                             $Prefix."CHNO"=>DB::raw($Prefix."CHNO  + 1") ,
-                                            $Prefix."CSID"=>"UserA",
+                                            $Prefix."CSID"=>$UserName,
                                             $Prefix."CSDT"=>Date("Y-m-d H:i:s")
                                         ));           
                 break;
             case "3":
                 $FinalField = array_merge($FinalField, array(
                                             $Prefix."DLFG"=>"1",
-                                            $Prefix."CHID"=>"UserA",
+                                            $Prefix."CHID"=>$UserName,
                                             $Prefix."CHDT"=>Date("Y-m-d H:i:s"),
-                                            $Prefix."CHNO"=>"0",
-                                            $Prefix."CSID"=>"UserA",
+                                            $Prefix."CHNO"=>DB::raw($Prefix."CHNO  + 1") ,
+                                            $Prefix."CSID"=>$UserName,
                                             $Prefix."CSDT"=>Date("Y-m-d H:i:s")
                                         ));           
                 break;
             default:
                 $FinalField = array_merge($FinalField, array(
-                                            $Prefix."CSID"=>"UserA",
+                                            $Prefix."CSID"=>$UserName,
                                             $Prefix."CSDT"=>Date("Y-m-d H:i:s")
                                         ));                       
                 break;
@@ -722,11 +724,20 @@ class BaseController extends Controller {
             }
 
             $arrCSDT = $this->fnGetRec($Obj["Table"], 
-                                        $Prefix.'CSDT'.",".$Prefix.'CSID', 
+                                        $Prefix.'DLFG'.",".$Prefix.'CSDT'.",".$Prefix.'CSID', 
                                         $Key, $Obj["Data"][$Key], $arrCondition) ;
+
+            if (count($arrCSDT) == 0) {
+                return array("success"=>false, "message"=>"Data not found!!! Please refresh your data");
+            }
             // var_dump($arrCSDT);
             $CSDT = $Prefix.'CSDT';
             $CSID = $Prefix.'CSID';
+            $DLFG = $Prefix.'DLFG';
+            // echo "(".$arrCSDT->$DLFG.")"; 
+            if ($arrCSDT->$DLFG == '1') {
+                return array("success"=>false, "message"=>"Data has been delete!!! Please refresh your data");
+            }
 
             if ($arrCSDT->$CSDT != $Obj["Data"][$Prefix.'CSDT']) {
                 return array("success"=>false, "message"=>"This Record already change by '".$arrCSDT->$CSID. "', Please refresh your data!!!");            
@@ -734,22 +745,33 @@ class BaseController extends Controller {
 
         }  // End Check Change System Date
 
-        if ($Obj["Menu"]!="") {  // Begin Check BackDate 
-            $arrMENU = $this->fnGetRec("TBLMNU","TMMENU,TMBFDT,TMFWDT", "TMURLW", $Obj["Menu"], "") ;
+        // return array("success"=>false, "message"=>"Coba Coba");
 
+        if ($Obj["Menu"]!="") {  // Begin Check BackDate 
+            $arrMENU = $this->fnGetRec("TBLMNU","TMMENU,TMBCDT,TMFWDT", "TMURLW", $Obj["Menu"], "") ;
+
+            if (count($arrMENU) == 0) {
+                return array("success"=>false, "message"=>"Menu not found Back date & Forward date paramenter (Wrong Menu) ");
+            }
 
             $TGL = date('Ymd');
             $TGL_TRANS = $Obj["Data"][$Obj["FieldTransDate"]]; //"20181120";
             $diff1 = date_diff(date_create($TGL),date_create($TGL_TRANS));
             $daysdiff = $diff1->format("%R%a");
             $daysdiff = abs($daysdiff);
+            // echo "<hr>"."TGL : (".$TGL.") ";
+            // echo "<hr>"."TGL_TRANS : (".$TGL_TRANS.") ";
+            // echo "<hr>";
+
             if ($TGL < $TGL_TRANS) {
-                if ($arrMENU->TMFWDT > $daysdiff) {
+                // echo "masuk (ForwardDate) ".$daysdiff." , menu ".$arrMENU->TMFWDT." <hr>";
+                if ($arrMENU->TMFWDT < $daysdiff) {
                   return array("success"=>false, "message"=>"Forward Date only ".$arrMENU->TMFWDT." days");
                 } 
             } else if ($TGL > $TGL_TRANS) {
-                if ($arrMENU->TMBCDT > $daysdiff) {
-                  return array("success"=>false, "message"=>"Bac kDate only ".$arrMENU->TMBCDT." days");
+                // echo "masuk (BackDate) ".$daysdiff." , menu ".$arrMENU->TMBCDT." <hr>";
+                if ($arrMENU->TMBCDT < $daysdiff) {
+                  return array("success"=>false, "message"=>"Back Date only ".$arrMENU->TMBCDT." days");
                 } 
             } 
 
@@ -758,7 +780,68 @@ class BaseController extends Controller {
         return array("success"=>true, "message"=>"");            
     }
 
-    public function fnSetExecuteQuery ($SQLSTM, $DELIMITER = "") {
+
+    public function fnTBLNOR ($UserName, $Table) {
+        $NoIY = 1;
+        $TBLNOUR = DB::table("TBLNOR")
+                        ->Select(['TNTABL' , 'TNNOUR'])
+                        ->where('TNTABL','=',$Table)
+                        // ->where('TNTABL','=','TBLMNU')
+                        ->get();
+        if (count($TBLNOUR)) {
+            // var_dump($TBLNOUR[0]);
+            $NoIY = ($TBLNOUR[0]->TNNOUR+1);
+            $TBLNOR = array("TNTABL"=>$Table,"TNNOUR"=>$NoIY);
+            $FinalTBLNOR = $this->fnGetSintaxCRUD ($TBLNOR, $UserName, '1', ['TNTABL','TNNOUR'], "" );
+            DB::table('TBLNOR')
+                ->where('TNTABL','=',$Table)
+                ->update($FinalTBLNOR);   
+        } else {
+            $TBLNOR = array("TNTABL"=>$Table,"TNNOUR"=>"1");
+            $FinalTBLNOR = $this->fnGetSintaxCRUD ($TBLNOR, $UserName, '1', ['TNTABL','TNNOUR'], "" );
+            DB::table('TBLNOR')
+                ->insert($FinalTBLNOR);   
+        }
+        return $NoIY;
+    }
+
+    public function fnSetExecuteQuery ($Stp, $DELIMITER = "") {
+
+        try{
+            DB::enableQueryLog();
+            DB::transaction(function () use($Stp) {
+                $HasilStp = $Stp();
+                if (isset($HasilStp)) {
+                    abort(404, $HasilStp['message']);
+                }
+            });
+            $a = DB::getQueryLog();
+            $BerHasil = true;
+        } catch (\Exception $e){ 
+            // var_dump($e);
+            // $message = $this->fnGetErrorMessage($e);
+            $message = $e->getMessage();
+            // $message = $e->getCode();
+            // $message = $e->getSql();
+            // $message = $e->errorInfo[0];
+            // $message = $e->errorInfo[1];
+            // $message = $e->errorInfo[2];
+            // $a = saveSqlError($e);
+            // $message = $a->sql;        
+            $BerHasil = false;
+        }
+
+        if ($BerHasil) {
+            $Hasil = array("success"=> true, "message"=> "*** Success ***");
+        } else {
+            $Hasil = array("success"=> false, "message"=> $message);
+        }
+
+        return $Hasil;
+
+    }
+
+    public function fnSetExecuteQueryXXX ($SQLSTM, $DELIMITER = "") {
     
         try{
             // DB::insert($s['all']);
@@ -819,13 +902,13 @@ class BaseController extends Controller {
                                         // var_dump($TBLNOUR[0]);
                                         $NoIY = ($TBLNOUR[0]->TNNOUR+1);
                                         $TBLNOR = array("TNTABL"=>$Data['Table'],"TNNOUR"=>$NoIY);
-                                        $FinalTBLNOR = $this->fnGetSintaxCRUD ($TBLNOR, '1', "TN", ['TNTABL','TNNOUR'], "" );
+                                        $FinalTBLNOR = $this->fnGetSintaxCRUD ($TBLNOR, $UserName, '1', ['TNTABL','TNNOUR'], "" );
                                         DB::table('TBLNOR')
                                             ->where('TNTABL','=',$Data['Table'])
                                             ->update($FinalTBLNOR);   
                                     } else {
                                         $TBLNOR = array("TNTABL"=>$Data['Table'],"TNNOUR"=>"1");
-                                        $FinalTBLNOR = $this->fnGetSintaxCRUD ($TBLNOR, '1', "TN", ['TNTABL','TNNOUR'], "" );
+                                        $FinalTBLNOR = $this->fnGetSintaxCRUD ($TBLNOR, $UserName, '1', ['TNTABL','TNNOUR'], "" );
                                         DB::table('TBLNOR')
                                             ->insert($FinalTBLNOR);   
                                     }
@@ -835,11 +918,11 @@ class BaseController extends Controller {
                             } // End Insert TBLNOR
 
 
-                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], '1', $Prefix, $Data['Field'], $Data['UnikNo'] );
+                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], $UserName, '1', $Data['Field'], $Data['UnikNo'] );
                             DB::table($Data['Table'])->insert($FinalField);
                             break;
                         case "U":
-                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], '2', $Prefix, $Data['Field'], $Data['UnikNo'] );
+                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], $UserName, '2', $Data['Field'], $Data['UnikNo'] );
                             DB::table($Data['Table'])
                                 ->where($Data['Where'])
                                 ->update($FinalField);
@@ -850,7 +933,7 @@ class BaseController extends Controller {
                                 ->delete();
                             break;
                         case "DD":
-                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], '3', $Prefix, $Data['Field'], $Data['UnikNo'] );
+                            $FinalField = $this->fnGetSintaxCRUD ($Data['Data'], $UserName, '3', $Data['Field'], $Data['UnikNo'] );
                             DB::table($Data['Table'])
                                 ->where($Data['Where'])
                                 ->update($FinalField);

@@ -122,7 +122,150 @@ class cBBHEAD extends BaseController {
         return response()->jSon($Obj);   
     }
 
+
+
+    public function StpBBHEAD ($request) {
+
+        $BBHEAD = json_encode($request->frmBBHEAD);
+        $BBHEAD = json_decode($BBHEAD, true);
+
+        $Delimiter = "";
+        $UnikNo = $this->fnGenUnikNo($Delimiter);
+        $UserName = "User AAA";
+        $Mode = $request->Mode;    
+
+        $HasilCheckBFCS = $this->fnCheckBFCS (
+                            array("Table"=>"BBHEAD", 
+                                  "Key"=>['BABKNOIY'], 
+                                  "Data"=>$BBHEAD, 
+                                  "Mode"=>$Mode,
+                                  "Menu"=>"BBHEAD", 
+                                  "FieldTransDate"=>"BABKDT"));
+        if (!$HasilCheckBFCS["success"]) {
+            return $HasilCheckBFCS;
+        }
+
+        switch ($Mode) {
+            case "1":
+                $BBHEAD['BATYPE'] = "";
+                $BBHEAD['BABKNOIY'] = $this->fnTBLNOR ($UserName, "BBHEAD");
+                $BBHEAD['BABKNO'] = "BKK-".substr("0000000".$BBHEAD['BABKNOIY'],-5);
+                DB::table('BBHEAD')
+                    ->insert(
+                        $this->fnGetSintaxCRUD ( $BBHEAD, $UserName, '1', 
+                            ['BABKNOIY','BABKNO','BABKDT','BATYPE','BALOCA','BADIVI','BADEPT','BACCNOIY',
+                             'BACURR','BATOTL','BAREMK'], 
+                            $UnikNo )
+                    );
+
+
+                $i=0;
+                if (is_array($BBHEAD['BBLINE'])) {
+                    foreach($BBHEAD['BBLINE'] as $BBLINE) {
+                        $i++;
+                        $BBLINE['BBBLNO'] = $i;
+                        $BBLINE['BBBKNOIY'] = $BBHEAD['BABKNOIY'];
+                        $BBLINE['BBBLNOIY'] = $this->fnTBLNOR ($UserName, "BBLINE");
+                        DB::table('BBLINE')
+                            ->insert(
+                                $this->fnGetSintaxCRUD ( $BBLINE, $UserName, '1', 
+                                    ['BBBLNOIY','BBBLNO','BBBKNOIY','BBC2CDIY','BBDESC','BBTOTL','BBREMK'], 
+                                    $UnikNo )
+                            );
+                    }                    
+                }
+
+                break;
+            case "2":
+                DB::table('BBHEAD')
+                    ->where('BABKNOIY','=',$BBHEAD['BABKNOIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($BBHEAD, $UserName, '2',  
+                            ['BATOTL','BAREMK'], 
+                            $UnikNo )
+                    );
+
+                DB::table('BBLINE')
+                    ->where('BBBKNOIY','=',$BBHEAD['BABKNOIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($BBHEAD, $UserName, '3',  
+                            ['BBBKNOIY'], 
+                            $UnikNo )
+                    );
+
+                $i = 0;
+                $i = DB::table("BBLINE")
+                        ->select("BBBLNO")
+                        ->where('BBBKNOIY','=',$BBHEAD['BABKNOIY'])
+                        ->max("BBBLNO");
+                if (is_array($BBHEAD['BBLINE'])) {
+                    foreach($BBHEAD['BBLINE'] as $BBLINE) {
+                        $i++;
+                        $BBLINE['BBBLNO'] = $i;
+                        $BBLINE['BBBKNOIY'] = $BBHEAD['BABKNOIY'];
+
+                        if ($BBLINE['BBBLNOIY']=="") {
+                            $BBLINE['BBBLNOIY'] = $this->fnTBLNOR ($UserName, "BBLINE");
+                            DB::table('BBLINE')
+                                ->insert(
+                                    $this->fnGetSintaxCRUD ( $BBLINE, $UserName, '1', 
+                                        ['BBBLNOIY','BBBLNO','BBBKNOIY','BBC2CDIY','BBDESC','BBTOTL','BBREMK'], 
+                                        $UnikNo )
+                                );
+                        } else {
+                            DB::table('BBLINE')
+                                ->where('BBBLNOIY','=',$BBLINE['BBBLNOIY'])
+                                ->update(
+                                    $this->fnGetSintaxCRUD ( $BBLINE, $UserName, '2', 
+                                        ['BBDESC','BBTOTL','BBREMK'], 
+                                        $UnikNo )
+                                );
+                        }
+                    }                    
+                }
+
+                break;
+            case "3":
+                DB::table('BBHEAD')
+                    ->where('BABKNOIY','=',$BBHEAD['BABKNOIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($BBHEAD, $UserName, '3',  
+                            ['BABKNOIY'], 
+                            $UnikNo )
+                    );
+
+                DB::table('BBLINE')
+                    ->where('BBBKNOIY','=',$BBHEAD['BABKNOIY'])
+                    ->update(
+                        $this->fnGetSintaxCRUD ($BBHEAD, $UserName, '3',  
+                            ['BBBKNOIY'], 
+                            $UnikNo )
+                    );
+
+                break;
+
+            default:
+                return array("success"=> false, "message"=> " No Permision fo this Action!!!");            
+                break;
+        }
+        // return array("success"=> false, "message"=> "coba ssss disini");
+
+    }
+
+
     public function SaveData(Request $request) {
+
+        $Hasil = $this->fnSetExecuteQuery(
+                    function () use($request) {
+                        return $this->StpBBHEAD($request);
+                    }
+                 );
+        // $Hasil = array("success"=> false, "message"=> "coba coba disini");
+        return response()->jSon($Hasil);        
+
+    }
+
+    public function SaveDataXXXX(Request $request) {
 
         $fBBHEAD = json_encode($request->frmBBHEAD);
         $fBBHEAD = json_decode($fBBHEAD, true);
