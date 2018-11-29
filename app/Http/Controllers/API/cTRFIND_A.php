@@ -153,7 +153,10 @@ class cTRFIND_A extends BaseController {
 
         switch ($Mode) {
             case "2":
-
+                /*
+                    Note : tidak perlu check sudah solution atau belum
+                           karena akan kena BFCS
+                */
                 if ($TRFIND["TFTIPE"] === "A") {
                     $FinalField = $this->fnGetSintaxCRUD ($TRFIND, $UserName, '2',  
                                         ['TFACDT','TFSTAFIY','TFRELO','TFACPL','TFACRM'], 

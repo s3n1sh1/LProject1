@@ -163,6 +163,10 @@ class cTRFIND_S extends BaseController {
 
         switch ($Mode) {
             case "2":
+                /*
+                    Note : tidak perlu check sudah solution atau belum
+                           karena akan kena BFCS
+                */
                 DB::table('TRFIND')
                     ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
                     ->update(

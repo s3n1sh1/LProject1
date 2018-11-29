@@ -163,6 +163,10 @@ class cTRFIND_C extends BaseController {
                 }
                 break;
             case "2":
+                /*
+                    Note : tidak perlu check sudah solution atau belum
+                           karena akan kena BFCS
+                */
                 DB::table('TRFIND')
                     ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
                     ->update(
@@ -191,6 +195,16 @@ class cTRFIND_C extends BaseController {
                 }
                 break;
             case "3":
+
+                $arrVALIDATE = DB::table('TRFIND')
+                                ->select('TFFINO', 'TFACDT')
+                                ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
+                                ->get()->toArray()[0];
+
+                if (!is_null($arrVALIDATE->TFACDT)) {
+                    return array("success"=> false, 
+                                 "message"=> "Finding No. ".$arrVALIDATE->TFFINO." already accepted!!!");  
+                }
 
                 DB::table('TRFIND')
                     ->where('TFFINDIY','=',$TRFIND['TFFINDIY'])
