@@ -805,9 +805,42 @@ class BaseController extends Controller {
         return $NoIY;
     }
 
-    public function fnSetExecuteQuery ($Stp, $DELIMITER = "") {
 
-        try{
+    public function fnTBLSLF ($UserName, $QueryLog) {
+        $TBLSLF = array("TQUSER"=>$UserName,
+                        "TQSTMT"=>$this->fnRawSql($QueryLog),
+                        "TQREMK"=>"",);
+        $FinalTBLSLF = $this->fnGetSintaxCRUD ($TBLSLF, $UserName, '1', ['TQUSER','TQSTMT','TQREMK'], "" );
+        DB::table('TBLSLF')
+            ->insert($FinalTBLSLF);   
+    }
+
+
+    public function fnTBLELF ($UserName, $QueryLog, $Error) {
+        if (isset($Error->errorInfo)) {
+            $errorInfo = $Error->errorInfo;
+        } else {
+            $errorInfo = [];
+            array_push($errorInfo,'Manual');
+            array_push($errorInfo,'');
+            array_push($errorInfo,$Error->getMessage());
+        }
+        $TBLELF = array("TEUSER"=>$UserName,
+                        "TEERST"=>$errorInfo[0], //error state : $errorInfo[0]
+                        "TEERNO"=>$errorInfo[1], //error code  : $errorInfo[1]
+                        "TEERMS"=>$errorInfo[2], //error message : $errorInfo[2]
+                        "TESPTR"=>"fnTBLELF",
+                        "TESTMT"=>$this->fnRawSql($QueryLog),
+                        "TEREMK"=>"");
+        $FinalTBLELF = $this->fnGetSintaxCRUD ($TBLELF, $UserName, '1', 
+                        ['TEUSER','TEERST','TEERNO','TEERMS','TESPTR','TESTMT','TEREMK'], "" );
+        DB::table('TBLELF')
+            ->insert($FinalTBLELF);   
+    }
+
+    public function fnSetExecuteQuery ($Stp, $UserName, $DELIMITER = "") {
+
+        try {
             DB::enableQueryLog();
             DB::transaction(function () use($Stp) {
                 $HasilStp = $Stp();
@@ -815,9 +848,11 @@ class BaseController extends Controller {
                     abort(404, $HasilStp['message']);
                 }
             });
-            $a = DB::getQueryLog();
+            // $a = DB::getQueryLog();
+            $this->fnTBLSLF ($UserName, DB::getQueryLog());
             $BerHasil = true;
         } catch (\Exception $e){ 
+            // $a = DB::getQueryLog();
             // var_dump($e);
             // $message = $this->fnGetErrorMessage($e);
             $message = $e->getMessage();
@@ -826,8 +861,10 @@ class BaseController extends Controller {
             // $message = $e->errorInfo[0];
             // $message = $e->errorInfo[1];
             // $message = $e->errorInfo[2];
+            // echo ($e->errorInfo[0]);
             // $a = saveSqlError($e);
-            // $message = $a->sql;        
+            // $message = $a->sql;
+            $this->fnTBLELF ($UserName, DB::getQueryLog(), $e);        
             $BerHasil = false;
         }
 
@@ -837,8 +874,73 @@ class BaseController extends Controller {
             $Hasil = array("success"=> false, "message"=> $message);
         }
 
+            // var_dump($a);
+            // echo $a->getSql();
+        // $this->fnRawSql($a);
         return $Hasil;
 
+    }
+
+
+
+    public function fnRawSql($sintax) {
+        if (is_array($sintax)) {
+            $data = "";
+            foreach ($sintax as $vSql) {
+                $sql = $vSql['query'];
+                $bindings = $vSql['bindings'];
+
+                foreach ($bindings as $i => $binding) {
+                    if ($binding instanceof \DateTime) {
+                        $bindings[$i] = $binding->format('\'Y-m-d H:i:s\'');
+                    } else {
+                        if (is_string($binding)) {
+                            $bindings[$i] = "'$binding'";
+                        }
+                    }
+                }
+
+                $query = str_replace(array('%', '?'), array('%%', '%s'), $sql);
+                $query = vsprintf($query, $bindings);
+                $data .= $query."
+"; // ini fungsinya untuk new line (jangan di naikin)
+            }       
+            // echo $data; 
+            return $data;
+        } 
+    }
+
+    public function saveSqlError($exception) {
+        
+        $sql = $exception->getSql();
+        $bindings = $exception->getBindings();
+
+        // Process the query's SQL and parameters and create the exact query
+        foreach ($bindings as $i => $binding) {
+            if ($binding instanceof \DateTime) {
+                $bindings[$i] = $binding->format('\'Y-m-d H:i:s\'');
+            } else {
+                if (is_string($binding)) {
+                    $bindings[$i] = "'$binding'";
+                }
+            }
+        }
+        $query = str_replace(array('%', '?'), array('%%', '%s'), $sql);
+        $query = vsprintf($query, $bindings);
+
+        // Here's the part you need
+        $errorInfo = $exception->errorInfo;
+
+        $data = [
+            'sql'        => $query,
+            'message'    => isset($errorInfo[2]) ? $errorInfo[2] : '',
+            'sql_state'  => $errorInfo[0],
+            'error_code' => $errorInfo[1]
+        ];
+
+        return $data;
+        // Now store the error into database, if you want..
+        // ....
     }
 
     public function fnSetExecuteQueryXXX ($SQLSTM, $DELIMITER = "") {
@@ -973,38 +1075,6 @@ class BaseController extends Controller {
     }
 
 
-
-    public function saveSqlError($exception) {
-        $sql = $exception->getSql();
-        $bindings = $exception->getBindings();
-
-        // Process the query's SQL and parameters and create the exact query
-        foreach ($bindings as $i => $binding) {
-            if ($binding instanceof \DateTime) {
-                $bindings[$i] = $binding->format('\'Y-m-d H:i:s\'');
-            } else {
-                if (is_string($binding)) {
-                    $bindings[$i] = "'$binding'";
-                }
-            }
-        }
-        $query = str_replace(array('%', '?'), array('%%', '%s'), $sql);
-        $query = vsprintf($query, $bindings);
-
-        // Here's the part you need
-        $errorInfo = $exception->errorInfo;
-
-        $data = [
-            'sql'        => $query,
-            'message'    => isset($errorInfo[2]) ? $errorInfo[2] : '',
-            'sql_state'  => $errorInfo[0],
-            'error_code' => $errorInfo[1]
-        ];
-
-        return $data;
-        // Now store the error into database, if you want..
-        // ....
-    }
 
 
     function fnGetErrorMessage($err) {

@@ -137,7 +137,7 @@ class cTRFIND_A extends BaseController {
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-        $UserName = "User AAA";
+        $UserName = $request->AppUserName;
         $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
@@ -187,7 +187,7 @@ class cTRFIND_A extends BaseController {
                     function () use($request) {
                         return $this->StpTRFIND($request);
                     }
-                 );
+                 , $request->AppUserName);
         // $Hasil = array("success"=> false, "message"=> "coba coba disini");
         return response()->jSon($Hasil);        
 

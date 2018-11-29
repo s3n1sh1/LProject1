@@ -50,6 +50,38 @@ class cBBHEAD extends BaseController {
     public function FillForm(Request $request) {
 
         // DB::enableQueryLog();
+// echo "coba";
+
+// $a = [array("query"=>"select `BADLFG`, `BACSDT`, `BACSID` from `BBHEAD` where `BABKNOIY` = ?",
+//        "bindings"=>[7],
+//        "time"=>1),
+//       array("query"=>"select `TMMENU`, `TMBCDT`, `TMFWDT` from `TBLMNU` where `TMURLW` = ?",
+//        "bindings"=>["BBHEAD"],
+//        "time"=>1),
+//       array("query"=>"update `BBHEAD` set `BAREMK` = ?, `BATOTL` = ?, `BADLFG` = ?, `BACHID` = ?, `BACHDT` = ?, `BACHNO` = BACHNO  + 1, `BACSID` = ?, `BACSDT` = ? where `BABKNOIY` = ?",
+//        "bindings"=>["aaaa",60,"0","admin","2018-11-29 14:01:51","admin","2018-11-29 14:01:51",7],
+//        "time"=>1),
+//       array("query"=>"update `BBLINE` set `BBDLFG` = ?, `BBCHID` = ?, `BBCHDT` = ?, `BBCHNO` = BBCHNO  + 1, `BBCSID` = ?, `BBCSDT` = ? where `BBBKNOIY` = ?",
+//        "bindings"=>["1","admin","2018-11-29 14:01:51","admin","2018-11-29 14:01:51",7],
+//        "time"=>0),
+//       array("query"=>"select max(`BBBLNO`) as aggregate from `BBLINE` where `BBBKNOIY` = ?",
+//        "bindings"=>[7],
+//        "time"=>0),
+//       array("query"=>"update `BBLINE` set `BBDESC` = ?, `BBTOTL` = ?, `BBREMK` = ?, `BBDLFG` = ?, `BBCHID` = ?, `BBCHDT` = ?, `BBCHNO` = BBCHNO  + 1, `BBCSID` = ?, `BBCSDT` = ? where `BBBLNOIY` = ?",
+//        "bindings"=>["aaa","10.00","","0","admin","2018-11-29 14:01:51","admin","2018-11-29 14:01:51",15],
+//        "time"=>0),
+//       array("query"=>"update `BBLINE` set `BBDESC` = ?, `BBTOTL` = ?, `BBREMK` = ?, `BBDLFG` = ?, `BBCHID` = ?, `BBCHDT` = ?, `BBCHNO` = BBCHNO  + 1, `BBCSID` = ?, `BBCSDT` = ? where `BBBLNOIY` = ?",
+//        "bindings"=>["bbbb","20.00","","0","admin","2018-11-29 14:01:51","admin","2018-11-29 14:01:51",16],
+//        "time"=>0),
+//       array("query"=>"update `BBLINE` set `BBDESC` = ?, `BBTOTL` = ?, `BBREMK` = ?, `BBDLFG` = ?, `BBCHID` = ?, `BBCHDT` = ?, `BBCHNO` = BBCHNO  + 1, `BBCSID` = ?, `BBCSDT` = ? where `BBBLNOIY` = ?",
+//        "bindings"=>["cccc","30.00","asdf","0","admin","2018-11-29 14:01:51","admin","2018-11-29 14:01:51",17],
+//        "time"=>0)
+//     ];
+//     // var_dump($a);
+//     echo json_encode($a);
+// // dd($a);
+// dd("stop");
+
 
         $BBHEAD = BBHEAD::noLock()
                 ->select( $this->fnGetColumnObj($this->ObjectData($request), "", "BBLINE") )
@@ -131,7 +163,7 @@ class cBBHEAD extends BaseController {
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-        $UserName = "User AAA";
+        $UserName = $request->AppUserName;
         $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
@@ -248,7 +280,7 @@ class cBBHEAD extends BaseController {
                 return array("success"=> false, "message"=> " No Permision fo this Action!!!");            
                 break;
         }
-        // return array("success"=> false, "message"=> "coba ssss disini");
+        // return array("success"=> false, "message"=> "coba getQueryLog disini");
 
     }
 
@@ -259,7 +291,7 @@ class cBBHEAD extends BaseController {
                     function () use($request) {
                         return $this->StpBBHEAD($request);
                     }
-                 );
+                 , $request->AppUserName);
         // $Hasil = array("success"=> false, "message"=> "coba coba disini");
         return response()->jSon($Hasil);        
 

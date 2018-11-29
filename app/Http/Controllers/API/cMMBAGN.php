@@ -76,7 +76,7 @@ class cMMBAGN extends BaseController {
 
         $Delimiter = "";
         $UnikNo = $this->fnGenUnikNo($Delimiter);
-        $UserName = "User AAA";
+        $UserName = $request->AppUserName;
         $Mode = $request->Mode;    
 
         $HasilCheckBFCS = $this->fnCheckBFCS (
@@ -124,7 +124,7 @@ class cMMBAGN extends BaseController {
                     function () use($request) {
                         return $this->StpMMBAGN($request);
                     }
-                 );
+                 , $request->AppUserName);
         // $Hasil = array("success"=> false, "message"=> "coba coba disini");
         return response()->jSon($Hasil);        
 
